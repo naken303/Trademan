@@ -3,6 +3,8 @@ import type {
   Village,
   WorldData,
 } from "../../../shared/types";
+import { worldDataSchema } from "../../../shared/schemas";
+import { z } from "zod";
 
 const API_BASE = "/api/world";
 
@@ -36,8 +38,35 @@ async function parseResponse<T>(
 
 export async function getWorld(): Promise<WorldData> {
   const response = await fetch(API_BASE);
+  return worldDataSchema.parse(await parseResponse<unknown>(response));
+}
 
-  return parseResponse<WorldData>(response);
+export async function importWorldData(input: unknown): Promise<WorldData> {
+  const world = worldDataSchema.parse(input);
+  const response = await fetch(`${API_BASE}/import`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(world),
+  });
+  return worldDataSchema.parse(await parseResponse<unknown>(response));
+}
+
+export async function saveWorldData(input: WorldData): Promise<WorldData> {
+  const world = worldDataSchema.parse(input);
+  const response = await fetch(API_BASE, {
+    method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(world),
+  });
+  return worldDataSchema.parse(await parseResponse<unknown>(response));
+}
+
+export async function createWorldBackup(): Promise<string> {
+  const response = await fetch(`${API_BASE}/backup`, { method: "POST" });
+  const result = z.object({ filename: z.string().min(1) }).parse(await parseResponse<unknown>(response));
+  return result.filename;
+}
+
+export async function downloadWorldExport(): Promise<Blob> {
+  const response = await fetch(`${API_BASE}/export`);
+  if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+  return response.blob();
 }
 
 export async function updateVillagePosition(

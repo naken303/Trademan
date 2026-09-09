@@ -8,11 +8,18 @@ import {
 
 import {
   villageSchema,
+  worldDataSchema,
 } from "../../shared/schemas";
 
 import {
   getWorld,
 } from "../database/repositories/world-repository";
+
+import {
+  createWorldBackup,
+  importWorld,
+  serializeWorld,
+} from "../database";
 
 import {
   createVillage,
@@ -49,6 +56,63 @@ worldRouter.get("/", (_req, res) => {
     res.status(500).json({
       error: "Failed to load world",
     });
+  }
+});
+
+worldRouter.get("/export", (_req, res) => {
+  try {
+    res
+      .type("application/json")
+      .attachment("village-trade-world.json")
+      .send(serializeWorld(getWorld()));
+  } catch (error) {
+    console.error("Failed to export world:", error);
+    res.status(500).json({ error: "Failed to export world" });
+  }
+});
+
+function replaceWorld(input: unknown) {
+  const parsed = worldDataSchema.safeParse(input);
+  if (!parsed.success) return parsed;
+  importWorld(parsed.data);
+  return parsed;
+}
+
+worldRouter.post("/import", (req, res) => {
+  try {
+    const parsed = replaceWorld(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues });
+      return;
+    }
+    res.json(getWorld());
+  } catch (error) {
+    console.error("Failed to import world:", error);
+    res.status(400).json({ error: error instanceof Error ? error.message : "Failed to import world" });
+  }
+});
+
+worldRouter.put("/", (req, res) => {
+  try {
+    const parsed = replaceWorld(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues });
+      return;
+    }
+    res.json(getWorld());
+  } catch (error) {
+    console.error("Failed to save world settings:", error);
+    res.status(400).json({ error: error instanceof Error ? error.message : "Failed to save world settings" });
+  }
+});
+
+worldRouter.post("/backup", (_req, res) => {
+  try {
+    const filename = createWorldBackup(getWorld());
+    res.status(201).json({ filename });
+  } catch (error) {
+    console.error("Failed to create backup:", error);
+    res.status(500).json({ error: "Failed to create backup" });
   }
 });
 

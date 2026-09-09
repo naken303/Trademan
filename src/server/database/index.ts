@@ -7,4 +7,5 @@ export function initializeDatabase(): void {
 export * from "./connection";
 export * from "./repositories";
 export * from "./world-importer";
+export * from "./world-file-service";
 export * from "./seed-loader";

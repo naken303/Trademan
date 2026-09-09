@@ -3,20 +3,20 @@
 ## Last Updated
 
 - Date: 2026-09-09
-- Commit: This commit (`Implement simulation UI`)
+- Commit: This commit (`Implement world import export backup and settings`)
 - Branch: main
 
 ## Current Phase
 
 - Phase: Feature implementation
-- Current Task: Simulation UI
+- Current Task: World import/export/backup and settings integration
 - Task Status: `completed`
 
 ## Repository Status
 
 - Working Tree: Clean after this commit.
-- Latest Commit: This commit (`Implement simulation UI`)
-- Notes: Runtime simulation mutations remain session-only and are not written back to WorldData persistence.
+- Latest Commit: This commit (`Implement world import export backup and settings`)
+- Notes: Valid imports replace persisted WorldData transactionally; backups are JSON snapshots under local `backups/`.
 
 ## Verification
 
@@ -33,7 +33,7 @@
 - Command: `npm run test`
 - Status: `PASS`
 - Date: 2026-09-09
-- Tests: 13 test files passed; 34 tests passed.
+- Tests: 14 test files passed; 40 tests passed.
 - Error Summary: None
 - Details: Vitest completed successfully.
 
@@ -54,10 +54,10 @@
 
 ## Changes In Last Task
 
-- Files changed: Simulation controller/store; Simulator page/styles; focused controller integration tests; this status note.
-- What changed: Added a runtime Simulation UI for state, travel, inventory, village markets, buying, selling, reset timing, crate use, and accumulated profit.
-- Why: Deliver the first complete interactive UI over the existing simulation engine.
-- Behavior affected: Users can initialize from saved WorldData and run session-only buy, travel, and sell actions with immediate state refresh.
+- Files changed: World file service/API; Database & Settings page/styles/navigation; focused persistence and HTTP tests; this status note.
+- What changed: Added full WorldData JSON export/import, manual JSON backups, and editing for persisted world/player/simulation/optimization settings and initial inventory.
+- Why: Complete the bounded world configuration and database-management workflow.
+- Behavior affected: Users can export, transactionally import after confirmation, create local backups, and save all settings already present in the shared WorldData contract.
 
 ## Known Issues
 
@@ -86,13 +86,14 @@
 - World and Village routes are covered through isolated HTTP regression tests using `createApp()` and an ephemeral local listener.
 - Route Management supports repository/API/client CRUD with shared validation and HTTP/contract regression coverage.
 - Simulation UI uses a thin controller/Zustand layer over the existing engine, including reverse-route fallback and travel-driven resets.
+- Full WorldData export/import and local JSON backup creation are available through the server and Database & Settings page.
+- World/player/simulation/optimization settings and initial inventory are editable and persist through the existing transactional importer.
 
 ## Remaining Work
 
-1. Implement import/export/backup and remaining editor/settings integration.
-2. Add E2E and full scenario coverage.
-3. Complete UX and release cleanup.
-4. Implement optimizer work later.
+1. Add E2E and full scenario coverage.
+2. Complete UX and release cleanup.
+3. Implement optimizer work later.
 
 ## Important Notes For ChatGPT
 
@@ -102,13 +103,16 @@
 - Route validation rejects self-routes and zero travel duration; reverse-route fallback remains exclusively in domain/simulation code.
 - Simulation UI initializes from persisted WorldData, but all runtime mutations remain in memory and restart from the saved world on reload/restart.
 - Simulation actions call `SimulationEngine` through `SimulationController`; React does not advance time, reset villages, or mutate trade state directly.
+- Export and backup serialize persisted WorldData only; runtime Simulation state is excluded.
+- Import is validated with the shared Zod schema before the existing SQLite transaction runs; schema and database failures leave the prior world unchanged.
+- Tests pass explicit temporary directories to backup creation and do not touch the real `backups/` directory or runtime SQLite database.
 - Do not re-import the demo world during server startup; SQLite runtime state must survive restart.
 - Shared types and Zod schemas are the contract between client, server, simulation, and persistence.
 - The optimizer's primary objective is accumulated profit; continuous selling is only a tie-break preference.
-- Latest verification: build, 34 tests, and lint pass; E2E was not run because no E2E npm script exists.
+- Latest verification: build, 40 tests, and lint pass; E2E was not run because no E2E npm script exists.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-09 | This commit | PASS | PASS | PASS | NOT_RUN | 13 test files/34 tests passed; build has a non-failing chunk-size warning; E2E script is not defined. |
+| 2026-09-09 | This commit | PASS | PASS | PASS | NOT_RUN | 14 test files/40 tests passed; build has a non-failing chunk-size warning; E2E script is not defined. |

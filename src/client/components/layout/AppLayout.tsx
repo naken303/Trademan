@@ -17,6 +17,7 @@ export function AppLayout() {
           <NavLink to="/villages">Villages</NavLink>
           <NavLink to="/routes">Routes</NavLink>
           <NavLink to="/simulator">Simulation</NavLink>
+          <NavLink to="/settings">Database & Settings</NavLink>
         </nav>
       </header>
 

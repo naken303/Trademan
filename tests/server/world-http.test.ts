@@ -40,6 +40,51 @@ describe("World and Village HTTP API", () => {
     });
   });
 
+  it("exports, imports, saves settings, and rejects invalid WorldData without mutation", async () => {
+    const exportedResponse = await request("/api/world/export");
+    const exported = await exportedResponse.json();
+    expect(exportedResponse.headers.get("content-disposition")).toContain("attachment");
+
+    const importedInput = {
+      ...exported,
+      settings: { currency: "COINS" },
+      player: {
+        ...exported.player,
+        initialInventory: [{ productId: "VEG", quantity: 2, unitCost: 11.5 }],
+      },
+    };
+    const importedResponse = await request("/api/world/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(importedInput),
+    });
+    expect(importedResponse.status).toBe(200);
+    expect(await importedResponse.json()).toEqual(importedInput);
+
+    const invalidResponse = await request("/api/world/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...importedInput, player: { ...importedInput.player, money: -1 } }),
+    });
+    expect(invalidResponse.status).toBe(400);
+    expect(await (await request("/api/world")).json()).toEqual(importedInput);
+
+    const settingsUpdate = {
+      ...importedInput,
+      player: { ...importedInput.player, money: 2468, inventoryCapacityCrates: 9 },
+      simulation: { startDay: 2, startHour: 6 },
+      optimization: { periodDays: 14, beamWidth: 64, maxSteps: 120 },
+    };
+    const savedResponse = await request("/api/world", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(settingsUpdate),
+    });
+    expect(savedResponse.status).toBe(200);
+    expect(await savedResponse.json()).toEqual(settingsUpdate);
+    expect(await (await request("/api/world")).json()).toEqual(settingsUpdate);
+  });
+
   it("creates, reads, updates, moves, and deletes a village", async () => {
     const village = {
       name: "HTTP Village",
