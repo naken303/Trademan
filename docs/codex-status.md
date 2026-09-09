@@ -3,20 +3,20 @@
 ## Last Updated
 
 - Date: 2026-09-10
-- Commit: This commit (`Implement optimizer core search`)
+- Commit: This commit (`Integrate optimizer worker and API`)
 - Branch: main
 
 ## Current Phase
 
 - Phase: Optimizer implementation
-- Current Task: Optimizer Core Search Foundation
+- Current Task: Optimizer Worker Thread + HTTP API integration
 - Task Status: `completed`
 
 ## Repository Status
 
 - Working Tree: Clean after this commit.
-- Latest Commit: This commit (`Implement optimizer core search`)
-- Notes: Optimizer core is internal only; no HTTP endpoint, Worker Thread, or React UI exists yet.
+- Latest Commit: This commit (`Integrate optimizer worker and API`)
+- Notes: Optimizer runs are isolated in one Worker Thread per request; React Optimizer UI is not implemented yet.
 
 ## Verification
 
@@ -33,7 +33,7 @@
 - Command: `npm run test`
 - Status: `PASS`
 - Date: 2026-09-10
-- Tests: 16 test files passed; 51 tests passed.
+- Tests: 17 test files passed; 55 tests passed.
 - Error Summary: None
 - Details: Vitest completed successfully.
 
@@ -54,10 +54,10 @@
 
 ## Changes In Last Task
 
-- Files changed: Optimizer contracts, deterministic state signature, scoring, beam search/public export, focused optimizer tests, and this status note.
-- What changed: Added bounded buy/sell/travel candidate generation, simulation-backed transitions, per-run deduplication, profit-first deterministic scoring, and search statistics.
-- Why: Establish the first working Optimizer core without adding transport or UI layers.
-- Behavior affected: `runOptimizer(world, options)` now returns a best-found realized-profit plan and final simulation state; persistence and existing application behavior are unchanged.
+- Files changed: Optimizer worker protocol/entry/bootstrap; server worker runner and optimizer route; app wiring; focused Worker/API tests; this status note.
+- What changed: Added isolated Worker Thread execution with timeout/cleanup and `POST /api/optimizer/run` with strict bounded Zod options and authoritative persisted WorldData.
+- Why: Expose the existing optimizer core without blocking the Express event loop or allowing clients to replace world input.
+- Behavior affected: Server clients can request optimizer results; each request receives a separate worker/cache and failures map to 400, 504, or sanitized 500 responses.
 
 ## Known Issues
 
@@ -71,7 +71,7 @@
    - Location: N/A
    - Problem: No low-priority release issue has been verified.
    - Impact: N/A
-   - Recommended action: Continue with Worker Thread and HTTP API integration as a separate bounded task.
+   - Recommended action: Continue with Optimizer UI integration as a separate bounded task.
 
 ## Completed Milestones
 
@@ -92,10 +92,11 @@
 - Deterministic simulation scenarios cover money, crates, inventory cost basis, realized profit, resets across travel, and all reverse-route cases.
 - Non-optimizer UX/release cleanup is complete, including consistent navigation/copy, recoverable page errors, lazy route chunks, and a manual smoke checklist.
 - Optimizer core searches bounded simulation-backed buy/sell/travel plans with deterministic state signatures, beam retention, per-run caching, and search statistics.
+- Optimizer Worker/API integration runs one isolated search worker per request with bounded overrides, timeout cleanup, and authoritative repository WorldData.
 
 ## Remaining Work
 
-1. Optimizer Worker Thread + HTTP API integration.
+1. Optimizer UI integration.
 
 ## Important Notes For ChatGPT
 
@@ -115,13 +116,16 @@
 - Optimizer transitions instantiate the existing `SimulationEngine` from each candidate state; cash, capacity, market, reserve, reset, travel, reverse-route, and profit rules are not duplicated.
 - Optimizer state signatures include time/location, player money, sorted inventory and cost basis, every village timer/reserve, all runtime market quantities, and accumulated realized profit.
 - Frontier ranking uses unrealized liquidation potential only as a tie-break heuristic; result profit remains `SimulationState.accumulatedProfit`, and exact global optimality is not claimed.
+- `POST /api/optimizer/run` accepts only `periodDays`, `beamWidth`, `maxSteps`, and `maxExpandedStates`; persisted settings provide omitted defaults and all effective values are checked against explicit API maxima.
+- The Worker never imports database code; the server loads WorldData before spawning it, and each run owns its search state/cache.
+- Worker bootstrap prefers a compiled `.js` entry and falls back to the repository's current TypeScript/ESM runtime; a post-build standalone worker smoke returned a profitable result.
 - Do not re-import the demo world during server startup; SQLite runtime state must survive restart.
 - Shared types and Zod schemas are the contract between client, server, simulation, and persistence.
 - The optimizer's primary objective is accumulated profit; continuous selling is only a tie-break preference.
-- Latest verification: build without chunk warnings, 51 Vitest tests, lint, and 3 Playwright E2E tests pass.
+- Latest verification: build without chunk warnings, 55 Vitest tests, lint, 3 Playwright E2E tests, and the post-build Worker runtime smoke pass.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-10 | This commit | PASS | PASS | PASS | PASS | 16 Vitest files/51 tests and 3 Playwright tests passed; production build completed without chunk warnings. |
+| 2026-09-10 | This commit | PASS | PASS | PASS | PASS | 17 Vitest files/55 tests and 3 Playwright tests passed; production build and post-build Worker runtime smoke passed. |

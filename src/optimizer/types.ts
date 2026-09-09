@@ -50,3 +50,12 @@ export interface OptimizerResult {
   options: ResolvedOptimizerSearchOptions;
   statistics: OptimizerSearchStatistics;
 }
+
+export interface OptimizerWorkerRequest {
+  world: WorldData;
+  options: OptimizerSearchOptions;
+}
+
+export type OptimizerWorkerResponse =
+  | { ok: true; result: OptimizerResult }
+  | { ok: false; error: { message: string } };
