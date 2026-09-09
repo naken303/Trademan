@@ -4,6 +4,7 @@ import path from "node:path";
 import { initializeDatabase } from "./database";
 import { marketsRouter } from "./routes/markets";
 import { productsRouter } from "./routes/products";
+import { routesRouter } from "./routes/routes";
 import { worldRouter } from "./routes/world";
 
 export function createApp() {
@@ -21,6 +22,7 @@ export function createApp() {
   app.use("/api/world", worldRouter);
   app.use("/api/products", productsRouter);
   app.use("/api/markets", marketsRouter);
+  app.use("/api/routes", routesRouter);
 
   return app;
 }

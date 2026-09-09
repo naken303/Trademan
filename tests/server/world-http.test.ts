@@ -105,3 +105,55 @@ describe("World and Village HTTP API", () => {
     expect((await request("/api/world/villages/missing")).status).toBe(404);
   });
 });
+
+describe("Route HTTP API", () => {
+  it("lists, creates, updates, reads, and deletes a directional route", async () => {
+    const createdResponse = await request("/api/routes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: "C",
+        to: "D",
+        travelTime: { days: 1, hours: 2 },
+      }),
+    });
+    const created = await createdResponse.json();
+    expect(createdResponse.status).toBe(201);
+
+    expect(await (await request(`/api/routes/${created.id}`)).json()).toEqual(created);
+    expect(await (await request("/api/routes")).json()).toContainEqual(created);
+
+    const updatedResponse = await request(`/api/routes/${created.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: "D",
+        to: "C",
+        travelTime: { days: 0, hours: 7 },
+      }),
+    });
+    expect(await updatedResponse.json()).toMatchObject({
+      from: "D",
+      to: "C",
+      travelTime: { days: 0, hours: 7 },
+    });
+
+    expect((await request(`/api/routes/${created.id}`, { method: "DELETE" })).status).toBe(200);
+    expect((await request(`/api/routes/${created.id}`)).status).toBe(404);
+  });
+
+  it("rejects self routes, zero duration, and unknown villages", async () => {
+    for (const input of [
+      { from: "A", to: "A", travelTime: { days: 0, hours: 1 } },
+      { from: "A", to: "B", travelTime: { days: 0, hours: 0 } },
+      { from: "A", to: "missing", travelTime: { days: 0, hours: 1 } },
+    ]) {
+      const response = await request("/api/routes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      expect(response.status).toBe(400);
+    }
+  });
+});

@@ -5,6 +5,7 @@ import { ProductsPage } from "../features/products/ProductsPage";
 import { SimulatorPage } from "../features/simulator/SimulatorPage";
 import { MarketPage } from "../features/market/MarketPage";
 import { VillagePage } from "../features/world/VillagePage";
+import { RoutePage } from "../features/routes/RoutePage";
 
 export function AppRouter() {
   return (
@@ -15,6 +16,7 @@ export function AppRouter() {
         <Route path="/simulator" element={<SimulatorPage />} />
         <Route path="/market" element={<MarketPage />} />
         <Route path="/villages" element={<VillagePage />} />
+        <Route path="/routes" element={<RoutePage />} />
         <Route
           path="*"
           element={<Navigate to="/world" replace />}

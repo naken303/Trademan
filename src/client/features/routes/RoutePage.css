@@ -1,0 +1,11 @@
+.route-page { display: grid; gap: 1rem; }
+.route-page > header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.route-page h1, .route-page p { margin: 0; }
+.route-panel { padding: 1rem; border: 1px solid #d8dee9; border-radius: 0.75rem; background: #fff; }
+.route-panel table { width: 100%; border-collapse: collapse; }
+.route-panel th, .route-panel td { padding: 0.75rem; border-bottom: 1px solid #e5e9f0; text-align: left; }
+.route-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.route-form label { display: grid; gap: 0.35rem; }
+.route-form select, .route-form input { padding: 0.6rem; }
+.route-actions { display: flex; gap: 0.5rem; }
+.route-error { color: #b42318; }

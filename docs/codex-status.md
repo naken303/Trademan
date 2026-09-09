@@ -3,20 +3,20 @@
 ## Last Updated
 
 - Date: 2026-09-09
-- Commit: 8e1b91d
+- Commit: pending route-management commit
 - Branch: main
 
 ## Current Phase
 
-- Phase: Foundation hardening
-- Current Task: Initial inventory cost basis and HTTP API regression coverage
+- Phase: Feature implementation
+- Current Task: Route Management
 - Task Status: `completed`
 
 ## Repository Status
 
-- Working Tree: Clean after `8e1b91d`; this commit-reference update is pending separately.
-- Latest Commit: `8e1b91d Complete initial inventory accounting and API regression tests`
-- Notes: Implementation and verification status were included in `8e1b91d`; this follow-up records its final hash.
+- Working Tree: Pending Route Management commit
+- Latest Commit: `ea1071e Skill optimize token`
+- Notes: Route Management changes and this status update are pending together.
 
 ## Verification
 
@@ -33,7 +33,7 @@
 - Command: `npm run test`
 - Status: `PASS`
 - Date: 2026-09-09
-- Tests: 11 test files passed; 28 tests passed.
+- Tests: 12 test files passed; 32 tests passed.
 - Error Summary: None
 - Details: Vitest completed successfully.
 
@@ -54,10 +54,10 @@
 
 ## Changes In Last Task
 
-- Files changed: Shared inventory/player contracts and schema; simulation initialization; database migration/import/repository; Express app setup; initial-inventory, persistence, and HTTP tests; this status note.
-- What changed: Added required `unitCost` to initial inventory, persisted it, initialized total product cost basis, extracted `createApp()`, and added World/Village HTTP regression coverage.
-- Why: Complete foundation accounting and verify current API routes through actual HTTP requests.
-- Behavior affected: Selling initial inventory now realizes profit from explicit weighted cost; API setup is independently testable without starting the production listener.
+- Files changed: Route schema/repository/API; Route client API/form/page/styles; app router/navigation; focused route tests; this status note.
+- What changed: Added complete directional Route CRUD and a Route Management page.
+- Why: Deliver the next bounded feature while preserving route-domain behavior.
+- Behavior affected: Users can list, create, edit, and delete directional routes with validated villages and travel duration.
 
 ## Known Issues
 
@@ -84,30 +84,29 @@
 - Foundation hardening: ESM world route import, Village visual persistence, configurable WorldData persistence, partial-sale accounting, reset validation, isolated test SQLite, and lint fixes.
 - Initial inventory uses explicit per-unit cost and is covered through persistence, simulation initialization, partial/full sales, multiple products, and zero-cost inventory tests.
 - World and Village routes are covered through isolated HTTP regression tests using `createApp()` and an ephemeral local listener.
+- Route Management supports repository/API/client CRUD with shared validation and HTTP/contract regression coverage.
 
 ## Remaining Work
 
-1. Implement Route Management.
-2. Implement Simulation UI.
-3. Implement import/export/backup and remaining editor/settings integration.
-4. Add E2E and full scenario coverage.
-5. Complete UX and release cleanup.
-6. Implement optimizer work later.
+1. Implement Simulation UI.
+2. Implement import/export/backup and remaining editor/settings integration.
+3. Add E2E and full scenario coverage.
+4. Complete UX and release cleanup.
+5. Implement optimizer work later.
 
 ## Important Notes For ChatGPT
 
 - Initial inventory entries require `{ productId, quantity, unitCost }`; runtime `inventoryCost` is initialized as `quantity * unitCost` per product.
 - Migration `003_initial_inventory_unit_cost.sql` preserves existing databases and explicitly maps legacy rows without recorded cost to `unitCost = 0`.
 - `createApp()` owns Express/database setup; `server.ts` owns only port selection and listening.
+- Route validation rejects self-routes and zero travel duration; reverse-route fallback remains exclusively in domain/simulation code.
 - Do not re-import the demo world during server startup; SQLite runtime state must survive restart.
 - Shared types and Zod schemas are the contract between client, server, simulation, and persistence.
 - The optimizer's primary objective is accumulated profit; continuous selling is only a tie-break preference.
-- Latest verification: build, 28 tests, and lint pass; E2E was not run because no E2E npm script exists.
+- Latest verification: build, 32 tests, and lint pass; E2E was not run because no E2E npm script exists.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-09 | `49a3981` | PASS | PASS | FAIL | NOT_RUN | Build completed with a non-failing chunk-size warning; 7 test files/18 tests passed; lint reported seven errors. |
-| 2026-09-09 | `2bc38c2` | PASS | PASS | PASS | NOT_RUN | 9 test files/23 tests passed; E2E script is not defined. |
-| 2026-09-09 | `8e1b91d` | PASS | PASS | PASS | NOT_RUN | 11 test files/28 tests passed; E2E script is not defined. |
+| 2026-09-09 | pending route-management commit | PASS | PASS | PASS | NOT_RUN | 12 test files/32 tests passed; build has a non-failing chunk-size warning; E2E script is not defined. |
