@@ -11,6 +11,10 @@ import {
 } from "../../shared/schemas";
 
 import {
+  getWorld,
+} from "../database/repositories/world-repository";
+
+import {
   createVillage,
   deleteVillage,
   getAllVillages,
@@ -33,10 +37,6 @@ function getId(
 
 worldRouter.get("/", (_req, res) => {
   try {
-    const {
-      getWorld,
-    } = require("../database/repositories/world-repository") as typeof import("../database/repositories/world-repository");
-
     const world = getWorld();
 
     res.json(world);

@@ -10,6 +10,8 @@ interface VillageRow {
   name: string;
   position_x: number;
   position_y: number;
+  visual_icon: string | null;
+  visual_image: string | null;
   initial_reserve_money: number;
   reset_current_days: number;
   reset_current_hours: number;
@@ -30,8 +32,8 @@ function rowToVillage(
     },
 
     visual: {
-      icon: null,
-      image: null,
+      icon: row.visual_icon,
+      image: row.visual_image,
     },
 
     initialReserveMoney:
@@ -60,6 +62,8 @@ export function getAllVillages(): Village[] {
           name,
           position_x,
           position_y,
+          visual_icon,
+          visual_image,
           initial_reserve_money,
           reset_current_days,
           reset_current_hours,
@@ -85,6 +89,8 @@ export function getVillageById(
           name,
           position_x,
           position_y,
+          visual_icon,
+          visual_image,
           initial_reserve_money,
           reset_current_days,
           reset_current_hours,
@@ -111,19 +117,23 @@ export function createVillage(
         name,
         position_x,
         position_y,
+        visual_icon,
+        visual_image,
         initial_reserve_money,
         reset_current_days,
         reset_current_hours,
         reset_after_days,
         reset_after_hours
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
   ).run(
     village.id,
     village.name,
     village.position.x,
     village.position.y,
+    village.visual?.icon ?? null,
+    village.visual?.image ?? null,
     village.initialReserveMoney,
     village.reset.current.days,
     village.reset.current.hours,
@@ -143,6 +153,8 @@ export function updateVillage(
           name = ?,
           position_x = ?,
           position_y = ?,
+          visual_icon = ?,
+          visual_image = ?,
           initial_reserve_money = ?,
           reset_current_days = ?,
           reset_current_hours = ?,
@@ -155,6 +167,8 @@ export function updateVillage(
       village.name,
       village.position.x,
       village.position.y,
+      village.visual?.icon ?? null,
+      village.visual?.image ?? null,
       village.initialReserveMoney,
       village.reset.current.days,
       village.reset.current.hours,

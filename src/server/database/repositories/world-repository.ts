@@ -8,6 +8,29 @@ import { getAllVillages } from "./village-repository";
 import { db } from "../connection";
 
 export function getWorld(): WorldData {
+  const settings = db
+    .prepare(`
+      SELECT
+        schema_version,
+        currency,
+        simulation_start_day,
+        simulation_start_hour
+      FROM world_settings
+      WHERE id = 1
+    `)
+    .get() as
+    | {
+        schema_version: number;
+        currency: string;
+        simulation_start_day: number;
+        simulation_start_hour: number;
+      }
+    | undefined;
+
+  if (!settings) {
+    throw new Error("World settings have not been initialized");
+  }
+
   const player = db
     .prepare(
       `
@@ -60,11 +83,19 @@ export function getWorld(): WorldData {
     );
   }
 
+  const initialInventory = db
+    .prepare(`
+      SELECT product_id, quantity
+      FROM player_initial_inventory
+      ORDER BY product_id
+    `)
+    .all() as Array<{ product_id: string; quantity: number }>;
+
   return {
-    schemaVersion: 1,
+    schemaVersion: settings.schema_version,
 
     settings: {
-      currency: "THB",
+      currency: settings.currency,
     },
 
     player: {
@@ -79,12 +110,15 @@ export function getWorld(): WorldData {
       continuousMode:
         player.continuous_mode === 1,
 
-      initialInventory: [],
+      initialInventory: initialInventory.map((item) => ({
+        productId: item.product_id,
+        quantity: item.quantity,
+      })),
     },
 
     simulation: {
-      startDay: 1,
-      startHour: 0,
+      startDay: settings.simulation_start_day,
+      startHour: settings.simulation_start_hour,
     },
 
     optimization: {

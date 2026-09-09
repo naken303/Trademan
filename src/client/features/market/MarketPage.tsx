@@ -66,13 +66,19 @@ export function MarketPage() {
     [products],
   );
 
+  const activeVillageId =
+    selectedVillageId === "all" ||
+    villages.some((village) => village.id === selectedVillageId)
+      ? selectedVillageId
+      : "all";
+
   const filteredMarkets =
-    selectedVillageId === "all"
+    activeVillageId === "all"
       ? markets
       : markets.filter(
           (market) =>
             market.villageId ===
-            selectedVillageId,
+            activeVillageId,
         );
 
   async function loadData() {
@@ -97,20 +103,10 @@ export function MarketPage() {
   }
 
   useEffect(() => {
-    void loadData();
+    queueMicrotask(() => {
+      void loadData();
+    });
   }, []);
-
-  useEffect(() => {
-    if (
-      selectedVillageId !== "all" &&
-      !villages.some(
-        (village) =>
-          village.id === selectedVillageId,
-      )
-    ) {
-      setSelectedVillageId("all");
-    }
-  }, [selectedVillageId, villages]);
 
   function handleAdd() {
     setError("");
@@ -255,6 +251,7 @@ export function MarketPage() {
           </h2>
 
           <MarketForm
+            key={editingMarket?.id ?? "new"}
             villages={villages}
             products={products}
             market={editingMarket}

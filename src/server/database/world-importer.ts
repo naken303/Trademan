@@ -26,6 +26,14 @@ export function importWorld(
       ).run();
 
       db.prepare(
+        "DELETE FROM player_initial_inventory",
+      ).run();
+
+      db.prepare(
+        "DELETE FROM world_settings",
+      ).run();
+
+      db.prepare(
         "DELETE FROM products",
       ).run();
 
@@ -135,6 +143,34 @@ export function importWorld(
           market.unitPrice,
           market.initialQuantity,
         );
+      }
+
+      db.prepare(`
+        INSERT INTO world_settings (
+          id,
+          schema_version,
+          currency,
+          simulation_start_day,
+          simulation_start_hour
+        )
+        VALUES (1, ?, ?, ?, ?)
+      `).run(
+        data.schemaVersion,
+        data.settings.currency,
+        data.simulation.startDay,
+        data.simulation.startHour,
+      );
+
+      const insertInitialInventory = db.prepare(`
+        INSERT INTO player_initial_inventory (
+          product_id,
+          quantity
+        )
+        VALUES (?, ?)
+      `);
+
+      for (const item of data.player.initialInventory) {
+        insertInitialInventory.run(item.productId, item.quantity);
       }
 
       db.prepare(`

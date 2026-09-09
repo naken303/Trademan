@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useState,
 } from "react";
 
@@ -95,14 +94,6 @@ export function VillageForm({
     saving,
     setSaving,
   ] = useState(false);
-
-  useEffect(() => {
-    setForm(
-      createInitialForm(village),
-    );
-
-    setError("");
-  }, [village]);
 
   function updateField(
     field: keyof FormState,

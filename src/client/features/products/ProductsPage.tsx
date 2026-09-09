@@ -221,8 +221,9 @@ export function ProductsPage() {
       )}
 
       {showForm && (
-        <ProductForm
-          product={editingProduct}
+          <ProductForm
+            key={editingProduct?.id ?? "new"}
+            product={editingProduct}
           loading={busy}
           onSubmit={handleSubmit}
           onCancel={handleCancel}

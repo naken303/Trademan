@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import type { Product } from "../../../shared/types";
 
@@ -47,12 +47,6 @@ export function ProductForm({
 
   const [validationError, setValidationError] =
     useState<string | null>(null);
-
-  useEffect(() => {
-    setForm(createInitialState(product));
-    setImageFile(undefined);
-    setValidationError(null);
-  }, [product]);
 
   const isEditing = product !== undefined;
 

@@ -312,6 +312,9 @@ export function sell(
 
       inventory:
         nextInventory,
+
+      inventoryCost:
+        nextInventoryCost,
     },
 
     villages: {

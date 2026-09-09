@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import type {
   Market,
@@ -52,11 +52,6 @@ export function MarketForm({
   );
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    setForm(createInitialForm(market));
-    setError("");
-  }, [market]);
 
   function updateField<K extends keyof FormState>(
     field: K,

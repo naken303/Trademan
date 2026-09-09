@@ -184,4 +184,37 @@ describe("Trade System", () => {
       state.villages.D.money,
     ).toBe(300);
   });
+
+  it("preserves the remaining cost basis across partial sales", () => {
+    let state = buy(
+      createState(),
+      [supply, demand],
+      [product],
+      "VEG",
+      10,
+      20,
+    );
+
+    state = {
+      ...state,
+      player: {
+        ...state.player,
+        location: "D",
+      },
+    };
+
+    state = sell(state, [supply, demand], "VEG", 4);
+
+    expect(state.player.inventory).toEqual([
+      { productId: "VEG", quantity: 6 },
+    ]);
+    expect(state.player.inventoryCost).toEqual({ VEG: 72 });
+    expect(state.accumulatedProfit).toBe(32);
+
+    state = sell(state, [supply, demand], "VEG", 6);
+
+    expect(state.player.inventory).toEqual([]);
+    expect(state.player.inventoryCost).toEqual({});
+    expect(state.accumulatedProfit).toBe(80);
+  });
 });

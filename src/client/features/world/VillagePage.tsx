@@ -71,7 +71,9 @@ export function VillagePage() {
   }
 
   useEffect(() => {
-    void loadData();
+    queueMicrotask(() => {
+      void loadData();
+    });
   }, []);
 
   function handleAdd() {
@@ -187,6 +189,7 @@ export function VillagePage() {
           </h2>
 
           <VillageForm
+            key={editingVillage?.id ?? "new"}
             village={editingVillage}
             onSubmit={handleSubmit}
             onCancel={handleCancel}
