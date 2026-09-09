@@ -270,8 +270,7 @@ export const useWorldStore = create<WorldStore>((set) => ({
         ) {
           await saveVillagePosition(
             village.id,
-            village.position.x,
-            village.position.y,
+            village.position,
           );
         }
       }
