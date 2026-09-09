@@ -12,13 +12,33 @@ test("app loads and core navigation pages initialize", async ({ page }) => {
     ["Markets", "Market Management"],
     ["Database & Settings", "Database & Settings"],
     ["Simulation", "Simulation"],
+    ["Optimizer", "Optimizer"],
   ] as const) {
     await page.getByRole("link", { name: link, exact: true }).click();
     await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
   }
 
+  await page.getByRole("link", { name: "Simulation", exact: true }).click();
   await expect(page.getByText("Day 1, 0:00")).toBeVisible();
   await expect(page.getByText("Village A", { exact: true }).first()).toBeVisible();
+});
+
+test("optimizer UI finds and explains a profitable plan", async ({ page }) => {
+  await page.goto("/optimizer");
+  await expect(page.getByRole("heading", { name: "Optimizer", exact: true })).toBeVisible();
+  await page.getByLabel("Optimization period (days)").fill("1");
+  await page.getByLabel("Beam width").fill("20");
+  await page.getByLabel("Maximum plan steps").fill("8");
+  await page.getByLabel("Maximum expanded states").fill("500");
+  await page.getByRole("button", { name: "Run Optimizer" }).click();
+
+  await expect(page.getByText("Best realized profit")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".optimizer-summary").getByText(/^[1-9][0-9,]* THB$/).first()).toBeVisible();
+  await expect(page.locator(".optimizer-step.buy").first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".optimizer-step.travel").first()).toBeVisible();
+  await expect(page.locator(".optimizer-step.sell").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Search statistics" })).toBeVisible();
+  await expect(page.getByText("Expanded", { exact: true })).toBeVisible();
 });
 
 test("simulation UI completes buy, travel, and partial sell", async ({ page }) => {

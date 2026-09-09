@@ -8,6 +8,7 @@ const VillagePage = lazy(() => import("../features/world/VillagePage").then((mod
 const RoutePage = lazy(() => import("../features/routes/RoutePage").then((module) => ({ default: module.RoutePage })));
 const MarketPage = lazy(() => import("../features/market/MarketPage").then((module) => ({ default: module.MarketPage })));
 const SimulatorPage = lazy(() => import("../features/simulator/SimulatorPage").then((module) => ({ default: module.SimulatorPage })));
+const OptimizerPage = lazy(() => import("../features/optimizer/OptimizerPage").then((module) => ({ default: module.OptimizerPage })));
 const DatabaseSettingsPage = lazy(() => import("../features/world/DatabaseSettingsPage").then((module) => ({ default: module.DatabaseSettingsPage })));
 
 export function AppRouter() {
@@ -17,6 +18,7 @@ export function AppRouter() {
         <Route path="/world" element={<WorldPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/simulator" element={<SimulatorPage />} />
+        <Route path="/optimizer" element={<OptimizerPage />} />
         <Route path="/market" element={<MarketPage />} />
         <Route path="/villages" element={<VillagePage />} />
         <Route path="/routes" element={<RoutePage />} />

@@ -3,20 +3,20 @@
 ## Last Updated
 
 - Date: 2026-09-10
-- Commit: This commit (`Integrate optimizer worker and API`)
+- Commit: This commit (`Add optimizer UI`)
 - Branch: main
 
 ## Current Phase
 
 - Phase: Optimizer implementation
-- Current Task: Optimizer Worker Thread + HTTP API integration
+- Current Task: Optimizer UI integration
 - Task Status: `completed`
 
 ## Repository Status
 
 - Working Tree: Clean after this commit.
-- Latest Commit: This commit (`Integrate optimizer worker and API`)
-- Notes: Optimizer runs are isolated in one Worker Thread per request; React Optimizer UI is not implemented yet.
+- Latest Commit: This commit (`Add optimizer UI`)
+- Notes: Optimizer runs through the existing Worker-backed HTTP API and results are presented without client-side search logic.
 
 ## Verification
 
@@ -50,14 +50,14 @@
 - Command: `npm run e2e`
 - Status: `PASS`
 - Date: 2026-09-10
-- Details: 3 Playwright tests passed using isolated temporary SQLite and backup paths.
+- Details: 4 Playwright tests passed using isolated temporary SQLite and backup paths.
 
 ## Changes In Last Task
 
-- Files changed: Optimizer worker protocol/entry/bootstrap; server worker runner and optimizer route; app wiring; focused Worker/API tests; this status note.
-- What changed: Added isolated Worker Thread execution with timeout/cleanup and `POST /api/optimizer/run` with strict bounded Zod options and authoritative persisted WorldData.
-- Why: Expose the existing optimizer core without blocking the Express event loop or allowing clients to replace world input.
-- Behavior affected: Server clients can request optimizer results; each request receives a separate worker/cache and failures map to 400, 504, or sanitized 500 responses.
+- Files changed: Optimizer API client/page/styles; client router and navigation; Playwright core scenario; this status note.
+- What changed: Added a lazy Optimizer page with bounded run controls, recoverable request states, readable plan and final-state output, and search statistics.
+- Why: Make the existing Worker-backed optimizer usable from the application without duplicating search or simulation behavior in React.
+- Behavior affected: Users can run optimizer searches against persisted WorldData and inspect realized profit, chronological actions, final inventory/capacity, timing, and search statistics.
 
 ## Known Issues
 
@@ -71,7 +71,7 @@
    - Location: N/A
    - Problem: No low-priority release issue has been verified.
    - Impact: N/A
-   - Recommended action: Continue with Optimizer UI integration as a separate bounded task.
+   - Recommended action: Continue with optimizer quality and performance hardening as a separate bounded task.
 
 ## Completed Milestones
 
@@ -93,10 +93,11 @@
 - Non-optimizer UX/release cleanup is complete, including consistent navigation/copy, recoverable page errors, lazy route chunks, and a manual smoke checklist.
 - Optimizer core searches bounded simulation-backed buy/sell/travel plans with deterministic state signatures, beam retention, per-run caching, and search statistics.
 - Optimizer Worker/API integration runs one isolated search worker per request with bounded overrides, timeout cleanup, and authoritative repository WorldData.
+- Optimizer UI runs the Worker-backed API with validated limits and presents named plan actions, final runtime state, and search statistics.
 
 ## Remaining Work
 
-1. Optimizer UI integration.
+1. Optimizer quality and performance hardening.
 
 ## Important Notes For ChatGPT
 
@@ -119,13 +120,15 @@
 - `POST /api/optimizer/run` accepts only `periodDays`, `beamWidth`, `maxSteps`, and `maxExpandedStates`; persisted settings provide omitted defaults and all effective values are checked against explicit API maxima.
 - The Worker never imports database code; the server loads WorldData before spawning it, and each run owns its search state/cache.
 - Worker bootstrap prefers a compiled `.js` entry and falls back to the repository's current TypeScript/ESM runtime; a post-build standalone worker smoke returned a profitable result.
+- Optimizer UI loads persisted optimization/player/world settings from the existing world endpoint and never sends WorldData to the optimizer API.
+- Optimizer plan prices and travel durations are presentation details resolved from persisted markets/routes; profit and final runtime state come directly from `OptimizerResult`.
 - Do not re-import the demo world during server startup; SQLite runtime state must survive restart.
 - Shared types and Zod schemas are the contract between client, server, simulation, and persistence.
 - The optimizer's primary objective is accumulated profit; continuous selling is only a tie-break preference.
-- Latest verification: build without chunk warnings, 55 Vitest tests, lint, 3 Playwright E2E tests, and the post-build Worker runtime smoke pass.
+- Latest verification: build without chunk warnings, 55 Vitest tests, lint, and 4 Playwright E2E tests passed.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-10 | This commit | PASS | PASS | PASS | PASS | 17 Vitest files/55 tests and 3 Playwright tests passed; production build and post-build Worker runtime smoke passed. |
+| 2026-09-10 | This commit | PASS | PASS | PASS | PASS | 17 Vitest files/55 tests and 4 Playwright tests passed; optimizer UI E2E found buy/travel/sell actions and positive realized profit. |
