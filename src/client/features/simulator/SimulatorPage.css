@@ -1,0 +1,33 @@
+.simulation-page { display: grid; gap: 1.25rem; }
+.simulation-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.simulation-heading h2, .simulation-heading p, .simulation-card h3, .simulation-card p { margin: 0; }
+.simulation-heading p, .simulation-card p { color: #667085; }
+.simulation-page button { border: 0; border-radius: 8px; padding: .65rem .9rem; background: #235347; color: #fff; cursor: pointer; }
+.simulation-page button.secondary { background: #fff; color: #344054; border: 1px solid #d0d5dd; }
+.simulation-page button:disabled { cursor: not-allowed; opacity: .45; }
+.simulation-error { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .8rem 1rem; border-radius: 8px; background: #fef3f2; color: #b42318; }
+.simulation-error button { padding: .1rem .45rem; background: transparent; color: inherit; font-size: 1.2rem; }
+.simulation-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .75rem; }
+.simulation-stats > div, .simulation-card { padding: 1rem; border: 1px solid #e4e7ec; border-radius: 12px; background: #fff; }
+.simulation-stats span, .simulation-village-card span { display: block; margin-bottom: .3rem; color: #667085; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+.simulation-stats strong { font-size: 1.05rem; }
+.simulation-grid { display: grid; grid-template-columns: minmax(240px, .7fr) minmax(440px, 1.3fr); gap: 1rem; align-items: start; }
+.simulation-column, .simulation-card, .simulation-destinations, .simulation-inventory { display: grid; gap: .9rem; }
+.simulation-destinations button, .simulation-inventory > div { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.simulation-destinations button { text-align: left; }
+.simulation-destinations button span { font-size: .82rem; opacity: .8; }
+.simulation-inventory > div { padding-bottom: .5rem; border-bottom: 1px solid #eaecf0; }
+.simulation-inventory-product { display: flex; align-items: center; gap: .55rem; }
+.simulation-inventory-product img { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; }
+.simulation-village-card { grid-template-columns: 1fr auto; align-items: center; }
+.simulation-village-card > div:last-child { text-align: right; }
+.supply-heading { color: #027a48; } .demand-heading { color: #b54708; }
+.simulation-trade-row { display: grid; grid-template-columns: minmax(180px, 1fr) auto 90px 70px; gap: .8rem; align-items: center; padding-top: .8rem; border-top: 1px solid #eaecf0; }
+.simulation-product { display: flex; gap: .7rem; align-items: center; }
+.simulation-product img, .simulation-product-placeholder { width: 42px; height: 42px; border-radius: 8px; object-fit: cover; background: #e8f1ee; }
+.simulation-product-placeholder { display: grid; place-items: center; color: #235347; font-weight: 700; }
+.simulation-product small { display: block; margin-top: .2rem; color: #667085; }
+.simulation-trade-row label { color: #667085; font-size: .75rem; }
+.simulation-trade-row input { width: 100%; margin-top: .2rem; padding: .45rem; border: 1px solid #d0d5dd; border-radius: 6px; }
+@media (max-width: 900px) { .simulation-stats { grid-template-columns: repeat(2, 1fr); } .simulation-grid { grid-template-columns: 1fr; } }
+@media (max-width: 620px) { .simulation-heading { flex-direction: column; } .simulation-stats { grid-template-columns: 1fr; } .simulation-trade-row { grid-template-columns: 1fr 1fr; } }

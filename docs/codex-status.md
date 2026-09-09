@@ -3,20 +3,20 @@
 ## Last Updated
 
 - Date: 2026-09-09
-- Commit: bdba33a
+- Commit: This commit (`Implement simulation UI`)
 - Branch: main
 
 ## Current Phase
 
 - Phase: Feature implementation
-- Current Task: Route Management
+- Current Task: Simulation UI
 - Task Status: `completed`
 
 ## Repository Status
 
-- Working Tree: Clean after Route Management implementation commit
-- Latest Commit: `bdba33a Implement route management` (latest implementation)
-- Notes: This documentation-only follow-up records the final implementation hash.
+- Working Tree: Clean after this commit.
+- Latest Commit: This commit (`Implement simulation UI`)
+- Notes: Runtime simulation mutations remain session-only and are not written back to WorldData persistence.
 
 ## Verification
 
@@ -33,7 +33,7 @@
 - Command: `npm run test`
 - Status: `PASS`
 - Date: 2026-09-09
-- Tests: 12 test files passed; 32 tests passed.
+- Tests: 13 test files passed; 34 tests passed.
 - Error Summary: None
 - Details: Vitest completed successfully.
 
@@ -54,10 +54,10 @@
 
 ## Changes In Last Task
 
-- Files changed: Route schema/repository/API; Route client API/form/page/styles; app router/navigation; focused route tests; this status note.
-- What changed: Added complete directional Route CRUD and a Route Management page.
-- Why: Deliver the next bounded feature while preserving route-domain behavior.
-- Behavior affected: Users can list, create, edit, and delete directional routes with validated villages and travel duration.
+- Files changed: Simulation controller/store; Simulator page/styles; focused controller integration tests; this status note.
+- What changed: Added a runtime Simulation UI for state, travel, inventory, village markets, buying, selling, reset timing, crate use, and accumulated profit.
+- Why: Deliver the first complete interactive UI over the existing simulation engine.
+- Behavior affected: Users can initialize from saved WorldData and run session-only buy, travel, and sell actions with immediate state refresh.
 
 ## Known Issues
 
@@ -85,14 +85,14 @@
 - Initial inventory uses explicit per-unit cost and is covered through persistence, simulation initialization, partial/full sales, multiple products, and zero-cost inventory tests.
 - World and Village routes are covered through isolated HTTP regression tests using `createApp()` and an ephemeral local listener.
 - Route Management supports repository/API/client CRUD with shared validation and HTTP/contract regression coverage.
+- Simulation UI uses a thin controller/Zustand layer over the existing engine, including reverse-route fallback and travel-driven resets.
 
 ## Remaining Work
 
-1. Implement Simulation UI.
-2. Implement import/export/backup and remaining editor/settings integration.
-3. Add E2E and full scenario coverage.
-4. Complete UX and release cleanup.
-5. Implement optimizer work later.
+1. Implement import/export/backup and remaining editor/settings integration.
+2. Add E2E and full scenario coverage.
+3. Complete UX and release cleanup.
+4. Implement optimizer work later.
 
 ## Important Notes For ChatGPT
 
@@ -100,13 +100,15 @@
 - Migration `003_initial_inventory_unit_cost.sql` preserves existing databases and explicitly maps legacy rows without recorded cost to `unitCost = 0`.
 - `createApp()` owns Express/database setup; `server.ts` owns only port selection and listening.
 - Route validation rejects self-routes and zero travel duration; reverse-route fallback remains exclusively in domain/simulation code.
+- Simulation UI initializes from persisted WorldData, but all runtime mutations remain in memory and restart from the saved world on reload/restart.
+- Simulation actions call `SimulationEngine` through `SimulationController`; React does not advance time, reset villages, or mutate trade state directly.
 - Do not re-import the demo world during server startup; SQLite runtime state must survive restart.
 - Shared types and Zod schemas are the contract between client, server, simulation, and persistence.
 - The optimizer's primary objective is accumulated profit; continuous selling is only a tie-break preference.
-- Latest verification: build, 32 tests, and lint pass; E2E was not run because no E2E npm script exists.
+- Latest verification: build, 34 tests, and lint pass; E2E was not run because no E2E npm script exists.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-09 | `bdba33a` | PASS | PASS | PASS | NOT_RUN | 12 test files/32 tests passed; build has a non-failing chunk-size warning; E2E script is not defined. |
+| 2026-09-09 | This commit | PASS | PASS | PASS | NOT_RUN | 13 test files/34 tests passed; build has a non-failing chunk-size warning; E2E script is not defined. |
