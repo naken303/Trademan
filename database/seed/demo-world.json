@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 1,
+  "settings": {
+    "currency": "THB"
+  },
+  "player": {
+    "currentVillageId": "A",
+    "money": 1000,
+    "inventoryCapacityCrates": 20,
+    "continuousMode": false,
+    "initialInventory": []
+  },
+  "simulation": {
+    "startDay": 1,
+    "startHour": 0
+  },
+  "optimization": {
+    "periodDays": 7,
+    "beamWidth": 350,
+    "maxSteps": 80
+  },
+  "products": [
+    {
+      "id": "MILK",
+      "name": "Milk",
+      "category": "Food",
+      "unitsPerCrate": 20
+    },
+    {
+      "id": "EGG",
+      "name": "Egg",
+      "category": "Food",
+      "unitsPerCrate": 20
+    },
+    {
+      "id": "VEG",
+      "name": "Vegetable",
+      "category": "Food",
+      "unitsPerCrate": 20
+    },
+    {
+      "id": "NAIL",
+      "name": "Nail",
+      "category": "Material",
+      "unitsPerCrate": 20
+    }
+  ],
+  "villages": [
+    {
+      "id": "A",
+      "name": "Village A",
+      "position": {
+        "x": 200,
+        "y": 200
+      },
+      "visual": {
+        "icon": "village"
+      },
+      "initialReserveMoney": 1000,
+      "reset": {
+        "current": {
+          "days": 0,
+          "hours": 12
+        },
+        "afterReset": {
+          "days": 1,
+          "hours": 2
+        }
+      }
+    },
+    {
+      "id": "B",
+      "name": "Village B",
+      "position": {
+        "x": 500,
+        "y": 200
+      },
+      "visual": {
+        "icon": "village"
+      },
+      "initialReserveMoney": 1000,
+      "reset": {
+        "current": {
+          "days": 0,
+          "hours": 12
+        },
+        "afterReset": {
+          "days": 1,
+          "hours": 2
+        }
+      }
+    },
+    {
+      "id": "C",
+      "name": "Village C",
+      "position": {
+        "x": 500,
+        "y": 450
+      },
+      "visual": {
+        "icon": "village"
+      },
+      "initialReserveMoney": 1000,
+      "reset": {
+        "current": {
+          "days": 0,
+          "hours": 12
+        },
+        "afterReset": {
+          "days": 1,
+          "hours": 2
+        }
+      }
+    },
+    {
+      "id": "D",
+      "name": "Village D",
+      "position": {
+        "x": 800,
+        "y": 200
+      },
+      "visual": {
+        "icon": "village"
+      },
+      "initialReserveMoney": 1000,
+      "reset": {
+        "current": {
+          "days": 0,
+          "hours": 12
+        },
+        "afterReset": {
+          "days": 1,
+          "hours": 2
+        }
+      }
+    }
+  ],
+  "routes": [
+    {
+      "id": "A-B",
+      "from": "A",
+      "to": "B",
+      "travelTime": {
+        "days": 0,
+        "hours": 4
+      }
+    },
+    {
+      "id": "A-C",
+      "from": "A",
+      "to": "C",
+      "travelTime": {
+        "days": 0,
+        "hours": 3
+      }
+    },
+    {
+      "id": "B-D",
+      "from": "B",
+      "to": "D",
+      "travelTime": {
+        "days": 0,
+        "hours": 5
+      }
+    }
+  ],
+  "markets": [
+    {
+      "id": "A-MILK-S",
+      "villageId": "A",
+      "productId": "MILK",
+      "side": "supply",
+      "unitPrice": 20,
+      "initialQuantity": 8
+    },
+    {
+      "id": "A-EGG-S",
+      "villageId": "A",
+      "productId": "EGG",
+      "side": "supply",
+      "unitPrice": 8,
+      "initialQuantity": 20
+    },
+    {
+      "id": "A-VEG-S",
+      "villageId": "A",
+      "productId": "VEG",
+      "side": "supply",
+      "unitPrice": 12,
+      "initialQuantity": 16
+    },
+    {
+      "id": "A-NAIL-D",
+      "villageId": "A",
+      "productId": "NAIL",
+      "side": "demand",
+      "unitPrice": 6,
+      "initialQuantity": 20
+    },
+    {
+      "id": "D-VEG-D",
+      "villageId": "D",
+      "productId": "VEG",
+      "side": "demand",
+      "unitPrice": 20,
+      "initialQuantity": 20
+    }
+  ]
+}

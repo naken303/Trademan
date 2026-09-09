@@ -1,0 +1,159 @@
+.market-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.market-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.market-page-header h1 {
+  margin: 0;
+}
+
+.market-page-header p {
+  margin: 6px 0 0;
+  opacity: 0.7;
+}
+
+.market-page-header button,
+.market-form-actions button,
+.market-actions button {
+  cursor: pointer;
+}
+
+.market-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.market-toolbar select {
+  min-width: 220px;
+}
+
+.market-page-error,
+.market-form-error {
+  padding: 10px 12px;
+  border: 1px solid #d66;
+  border-radius: 6px;
+  background: #fff5f5;
+}
+
+.market-form-panel,
+.market-table-panel {
+  padding: 18px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+}
+
+.market-form-panel h2,
+.market-table-header h2 {
+  margin-top: 0;
+}
+
+.market-form {
+  display: grid;
+  gap: 14px;
+  max-width: 700px;
+}
+
+.market-form-field {
+  display: grid;
+  gap: 6px;
+}
+
+.market-form-field label {
+  font-weight: 600;
+}
+
+.market-form-field input,
+.market-form-field select,
+.market-toolbar select {
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 1px solid #bbb;
+  border-radius: 5px;
+}
+
+.market-form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.market-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.market-table-header h2 {
+  margin-bottom: 0;
+}
+
+.market-table-wrapper {
+  overflow-x: auto;
+}
+
+.market-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.market-table th,
+.market-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.market-table th {
+  font-weight: 700;
+}
+
+.market-product-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.market-product-cell img {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.market-side {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.market-side-supply {
+  background: #e8f5e9;
+}
+
+.market-side-demand {
+  background: #fff3e0;
+}
+
+.market-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.market-empty {
+  padding: 30px;
+  text-align: center !important;
+  opacity: 0.6;
+}

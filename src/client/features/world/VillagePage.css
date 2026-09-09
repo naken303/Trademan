@@ -1,0 +1,156 @@
+.village-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.village-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.village-page-header h1 {
+  margin: 0;
+}
+
+.village-page-header p {
+  margin: 6px 0 0;
+  opacity: 0.7;
+}
+
+.village-page-header button,
+.village-form-actions button,
+.village-actions button {
+  cursor: pointer;
+}
+
+.village-page-error,
+.village-form-error {
+  padding: 10px 12px;
+  border: 1px solid #d66;
+  border-radius: 6px;
+  background: #fff5f5;
+}
+
+.village-panel {
+  padding: 18px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+}
+
+.village-panel h2 {
+  margin-top: 0;
+}
+
+.village-form {
+  display: grid;
+  gap: 16px;
+  max-width: 700px;
+}
+
+.village-form-field {
+  display: grid;
+  gap: 6px;
+}
+
+.village-form-field label {
+  font-weight: 600;
+}
+
+.village-form-field input {
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 1px solid #bbb;
+  border-radius: 5px;
+}
+
+.village-form fieldset {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.village-form legend {
+  padding: 0 6px;
+  font-weight: 700;
+}
+
+.village-duration-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.village-form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.village-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.village-table-header h2 {
+  margin: 0;
+}
+
+.village-table-wrapper {
+  overflow-x: auto;
+}
+
+.village-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.village-table th,
+.village-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.village-table th {
+  font-weight: 700;
+}
+
+.village-table td strong,
+.village-table td small {
+  display: block;
+}
+
+.village-table td small {
+  margin-top: 3px;
+  opacity: 0.55;
+  font-size: 11px;
+}
+
+.village-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.village-empty {
+  padding: 30px;
+  text-align: center !important;
+  opacity: 0.6;
+}
+
+@media (max-width: 700px) {
+  .village-page-header {
+    flex-direction: column;
+  }
+
+  .village-duration-fields {
+    grid-template-columns: 1fr;
+  }
+}

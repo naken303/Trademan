@@ -1,0 +1,57 @@
+.app-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid #d9d9d9;
+  background: #ffffff;
+}
+
+.app-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.app-title h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.app-title span {
+  color: #666;
+  font-size: 13px;
+}
+
+.app-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.app-nav a {
+  padding: 8px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #444;
+}
+
+.app-nav a:hover {
+  background: #f0f0f0;
+}
+
+.app-nav a.active {
+  background: #222;
+  color: #fff;
+}
+
+.app-content {
+  flex: 1;
+  min-height: 0;
+}
