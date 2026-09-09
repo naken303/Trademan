@@ -3,20 +3,20 @@
 ## Last Updated
 
 - Date: 2026-09-09
-- Commit: 655bb4a
+- Commit: 2bc38c2
 - Branch: main
 
 ## Current Phase
 
 - Phase: Foundation hardening
-- Current Task: Fix ESM, persistence, simulation accounting, reset validation, test isolation, and lint
-- Task Status: `completed`
+- Current Task: Add HTTP route regression coverage and define initial-inventory cost basis
+- Task Status: `in-progress`
 
 ## Repository Status
 
-- Working Tree: Pending foundation-hardening commit
-- Latest Commit: `655bb4a Add Codex project status note`
-- Notes: This status note is updated in the same pending change as the foundation fixes.
+- Working Tree: Clean after `2bc38c2`; this status-note update is pending its own commit.
+- Latest Commit: `2bc38c2 Fix foundation persistence and simulation accounting`
+- Notes: Foundation fixes were committed separately from this follow-up status update.
 
 ## Verification
 
@@ -116,4 +116,4 @@
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
 | 2026-09-09 | `49a3981` | PASS | PASS | FAIL | NOT_RUN | Build completed with a non-failing chunk-size warning; 7 test files/18 tests passed; lint reported seven errors. |
-| 2026-09-09 | pending foundation-hardening commit | PASS | PASS | PASS | NOT_RUN | 9 test files/23 tests passed; E2E script is not defined. |
+| 2026-09-09 | `2bc38c2` | PASS | PASS | PASS | NOT_RUN | 9 test files/23 tests passed; E2E script is not defined. |
