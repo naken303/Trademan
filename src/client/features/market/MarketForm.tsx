@@ -70,12 +70,12 @@ export function MarketForm({
     setError("");
 
     if (!form.villageId) {
-      setError("กรุณาเลือกหมู่บ้าน");
+      setError("Select a village.");
       return;
     }
 
     if (!form.productId) {
-      setError("กรุณาเลือกสินค้า");
+      setError("Select a product.");
       return;
     }
 
@@ -88,7 +88,7 @@ export function MarketForm({
       !Number.isFinite(unitPrice) ||
       unitPrice < 0
     ) {
-      setError("ราคาต้องเป็นตัวเลขตั้งแต่ 0 ขึ้นไป");
+      setError("Unit price must be zero or greater.");
       return;
     }
 
@@ -97,7 +97,7 @@ export function MarketForm({
       initialQuantity < 0
     ) {
       setError(
-        "จำนวนเริ่มต้นต้องเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป",
+        "Initial quantity must be a whole number of zero or greater.",
       );
       return;
     }
@@ -116,7 +116,7 @@ export function MarketForm({
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "ไม่สามารถบันทึกข้อมูลได้",
+          : "Unable to save market",
       );
     } finally {
       setSaving(false);
@@ -144,7 +144,7 @@ export function MarketForm({
           }
         >
           <option value="">
-            -- เลือกหมู่บ้าน --
+            Select village
           </option>
 
           {villages.map((village) => (
@@ -174,7 +174,7 @@ export function MarketForm({
           }
         >
           <option value="">
-            -- เลือกสินค้า --
+            Select product
           </option>
 
           {products.map((product) => (
@@ -206,11 +206,11 @@ export function MarketForm({
           }
         >
           <option value="supply">
-            Supply — หมู่บ้านขายให้ผู้เล่น
+            Supply — village sells to player
           </option>
 
           <option value="demand">
-            Demand — หมู่บ้านซื้อจากผู้เล่น
+            Demand — village buys from player
           </option>
         </select>
       </div>
@@ -232,7 +232,7 @@ export function MarketForm({
               event.target.value,
             )
           }
-          placeholder="เช่น 20"
+          placeholder="For example, 20"
         />
       </div>
 
@@ -253,7 +253,7 @@ export function MarketForm({
               event.target.value,
             )
           }
-          placeholder="เช่น 20"
+          placeholder="For example, 20"
         />
       </div>
 
@@ -269,10 +269,10 @@ export function MarketForm({
           disabled={saving}
         >
           {saving
-            ? "กำลังบันทึก..."
+            ? "Saving..."
             : market
-              ? "บันทึกการแก้ไข"
-              : "เพิ่ม Market"}
+              ? "Save changes"
+              : "Add Market"}
         </button>
 
         <button
@@ -280,7 +280,7 @@ export function MarketForm({
           onClick={onCancel}
           disabled={saving}
         >
-          ยกเลิก
+          Cancel
         </button>
       </div>
     </form>

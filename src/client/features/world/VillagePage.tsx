@@ -63,7 +63,7 @@ export function VillagePage() {
       setError(
         loadError instanceof Error
           ? loadError.message
-          : "ไม่สามารถโหลด Village ได้",
+          : "Unable to load villages",
       );
     } finally {
       setLoading(false);
@@ -119,7 +119,7 @@ export function VillagePage() {
   ) {
     const confirmed =
       window.confirm(
-        `ต้องการลบหมู่บ้าน "${village.name}" หรือไม่?\n\nหมายเหตุ: หากหมู่บ้านนี้มี Market หรือ Route ที่อ้างอิงอยู่ การลบอาจถูก SQLite ปฏิเสธ`,
+        `Delete village "${village.name}"? Referenced routes or markets may prevent deletion.`,
       );
 
     if (!confirmed) {
@@ -138,7 +138,7 @@ export function VillagePage() {
       setError(
         deleteError instanceof Error
           ? deleteError.message
-          : "ไม่สามารถลบ Village ได้",
+          : "Unable to delete village",
       );
     }
   }
@@ -147,7 +147,7 @@ export function VillagePage() {
     return (
       <div className="village-page">
         <div className="village-panel">
-          กำลังโหลดข้อมูล Village...
+          Loading villages...
         </div>
       </div>
     );
@@ -162,7 +162,7 @@ export function VillagePage() {
           </h1>
 
           <p>
-            จัดการข้อมูลหมู่บ้านและ Reset Timer
+            Manage villages and reset timers.
           </p>
         </div>
 
@@ -170,7 +170,7 @@ export function VillagePage() {
           type="button"
           onClick={handleAdd}
         >
-          + เพิ่ม Village
+          + Add Village
         </button>
       </div>
 
@@ -184,8 +184,8 @@ export function VillagePage() {
         <section className="village-panel">
           <h2>
             {editingVillage
-              ? "แก้ไข Village"
-              : "เพิ่ม Village"}
+              ? "Edit Village"
+              : "Add Village"}
           </h2>
 
           <VillageForm
@@ -202,7 +202,7 @@ export function VillagePage() {
           <h2>Villages</h2>
 
           <span>
-            {villages.length} หมู่บ้าน
+            {villages.length} villages
           </span>
         </div>
 
@@ -279,7 +279,7 @@ export function VillagePage() {
                             )
                           }
                         >
-                          แก้ไข
+                          Edit
                         </button>
 
                         <button
@@ -290,7 +290,7 @@ export function VillagePage() {
                             )
                           }
                         >
-                          ลบ
+                          Delete
                         </button>
                       </div>
                     </td>
@@ -304,7 +304,7 @@ export function VillagePage() {
                     colSpan={6}
                     className="village-empty"
                   >
-                    ยังไม่มี Village
+                    No villages found.
                   </td>
                 </tr>
               )}

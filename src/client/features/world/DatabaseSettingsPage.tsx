@@ -78,7 +78,12 @@ export function DatabaseSettingsPage() {
     updatePlayer({ initialInventory });
   };
 
-  if (!world) return <section className="settings-page"><h2>Database & Settings</h2><p>{feedback?.message ?? "Loading settings..."}</p></section>;
+  if (!world) return <section className="settings-page"><h2>Database & Settings</h2>
+    <p className={feedback?.kind === "error" ? "settings-feedback error" : undefined}>{feedback?.message ?? "Loading settings..."}</p>
+    {feedback?.kind === "error" && <button type="button" disabled={busy} onClick={() => void run(async () => {
+      const loaded = await getWorld(); setWorld(loaded); return "Settings loaded.";
+    })}>Try again</button>}
+  </section>;
 
   return (
     <section className="settings-page">

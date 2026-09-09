@@ -95,7 +95,7 @@ export function MarketPage() {
       setError(
         loadError instanceof Error
           ? loadError.message
-          : "ไม่สามารถโหลดข้อมูล Market ได้",
+          : "Unable to load markets",
       );
     } finally {
       setLoading(false);
@@ -128,7 +128,7 @@ export function MarketPage() {
       villageMap.get(market.villageId);
 
     const confirmed = window.confirm(
-      `ต้องการลบ Market ${product?.name ?? market.productId} ที่ ${village?.name ?? market.villageId} หรือไม่?`,
+      `Delete ${product?.name ?? market.productId} market at ${village?.name ?? market.villageId}?`,
     );
 
     if (!confirmed) {
@@ -144,7 +144,7 @@ export function MarketPage() {
       setError(
         deleteError instanceof Error
           ? deleteError.message
-          : "ไม่สามารถลบ Market ได้",
+          : "Unable to delete market",
       );
     }
   }
@@ -177,7 +177,7 @@ export function MarketPage() {
     return (
       <div className="market-page">
         <div className="market-table-panel">
-          กำลังโหลดข้อมูล Market...
+          Loading markets...
         </div>
       </div>
     );
@@ -190,8 +190,7 @@ export function MarketPage() {
           <h1>Market Management</h1>
 
           <p>
-            จัดการ Supply และ Demand
-            ของแต่ละหมู่บ้าน
+            Manage village supply and demand.
           </p>
         </div>
 
@@ -203,7 +202,7 @@ export function MarketPage() {
             products.length === 0
           }
         >
-          + เพิ่ม Market
+          + Add Market
         </button>
       </div>
 
@@ -228,7 +227,7 @@ export function MarketPage() {
           }
         >
           <option value="all">
-            ทุกหมู่บ้าน
+            All villages
           </option>
 
           {villages.map((village) => (
@@ -246,8 +245,8 @@ export function MarketPage() {
         <section className="market-form-panel">
           <h2>
             {editingMarket
-              ? "แก้ไข Market"
-              : "เพิ่ม Market"}
+              ? "Edit Market"
+              : "Add Market"}
           </h2>
 
           <MarketForm
@@ -266,7 +265,7 @@ export function MarketPage() {
           <h2>Markets</h2>
 
           <span>
-            {filteredMarkets.length} รายการ
+            {filteredMarkets.length} entries
           </span>
         </div>
 
@@ -306,7 +305,7 @@ export function MarketPage() {
                       <div className="market-product-cell">
                         {product?.image?.path && (
                           <img
-                            src={`/assets/${product.image.path.replaceAll("\\", "/")}?v=${encodeURIComponent(
+                            src={`/${product.image.path.replaceAll("\\", "/")}?v=${encodeURIComponent(
                               product.id,
                             )}`}
                             alt=""
@@ -347,7 +346,7 @@ export function MarketPage() {
                             handleEdit(market)
                           }
                         >
-                          แก้ไข
+                          Edit
                         </button>
 
                         <button
@@ -358,7 +357,7 @@ export function MarketPage() {
                             )
                           }
                         >
-                          ลบ
+                          Delete
                         </button>
                       </div>
                     </td>
@@ -372,7 +371,7 @@ export function MarketPage() {
                     colSpan={6}
                     className="market-empty"
                   >
-                    ยังไม่มี Market
+                    No markets found.
                   </td>
                 </tr>
               )}

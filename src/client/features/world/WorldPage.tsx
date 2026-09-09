@@ -59,19 +59,20 @@ export function WorldPage() {
   }, [loadWorld]);
 
   if (loading && !world) {
-    return <div>Loading world...</div>;
+    return <div className="page-state">Loading world...</div>;
   }
 
   if (error && !world) {
     return (
-      <div>
+      <div className="page-alert">
         Failed to load world: {error}
+        <div><button type="button" onClick={() => void loadWorld()}>Try again</button></div>
       </div>
     );
   }
 
   if (!world) {
-    return <div>No world data.</div>;
+    return <div className="page-state">No world data is configured.</div>;
   }
 
   return (
@@ -163,6 +164,8 @@ export function WorldPage() {
           </span>
         )}
       </div>
+
+      {error && <div className="page-alert" role="alert">World update failed: {error}</div>}
 
       <WorldCanvas world={world} />
     </div>

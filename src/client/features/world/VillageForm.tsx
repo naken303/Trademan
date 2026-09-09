@@ -131,7 +131,7 @@ export function VillageForm({
 
     if (!form.name.trim()) {
       setError(
-        "กรุณาระบุชื่อหมู่บ้าน",
+        "Village name is required.",
       );
       return;
     }
@@ -143,7 +143,7 @@ export function VillageForm({
       initialReserveMoney < 0
     ) {
       setError(
-        "เงินเริ่มต้นต้องเป็นตัวเลขตั้งแต่ 0 ขึ้นไป",
+        "Initial reserve money must be zero or greater.",
       );
       return;
     }
@@ -153,7 +153,7 @@ export function VillageForm({
       currentDays < 0
     ) {
       setError(
-        "Current Reset Days ต้องเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป",
+        "Current reset days must be a whole number of zero or greater.",
       );
       return;
     }
@@ -164,7 +164,7 @@ export function VillageForm({
       currentHours > 23
     ) {
       setError(
-        "Current Reset Hours ต้องอยู่ระหว่าง 0 ถึง 23",
+        "Current reset hours must be between 0 and 23.",
       );
       return;
     }
@@ -176,7 +176,7 @@ export function VillageForm({
       afterResetDays < 0
     ) {
       setError(
-        "After Reset Days ต้องเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป",
+        "After-reset days must be a whole number of zero or greater.",
       );
       return;
     }
@@ -189,7 +189,7 @@ export function VillageForm({
       afterResetHours > 23
     ) {
       setError(
-        "After Reset Hours ต้องอยู่ระหว่าง 0 ถึง 23",
+        "After-reset hours must be between 0 and 23.",
       );
       return;
     }
@@ -199,7 +199,7 @@ export function VillageForm({
       currentHours === 0
     ) {
       setError(
-        "Current Reset ต้องมากกว่า 0",
+        "Current reset duration must be greater than zero.",
       );
       return;
     }
@@ -209,7 +209,7 @@ export function VillageForm({
       afterResetHours === 0
     ) {
       setError(
-        "After Reset ต้องมากกว่า 0",
+        "After-reset duration must be greater than zero.",
       );
       return;
     }
@@ -250,7 +250,7 @@ export function VillageForm({
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "ไม่สามารถบันทึก Village ได้",
+          : "Unable to save village",
       );
     } finally {
       setSaving(false);
@@ -277,7 +277,7 @@ export function VillageForm({
               event.target.value,
             )
           }
-          placeholder="เช่น Village A"
+          placeholder="For example, Village A"
         />
       </div>
 
@@ -417,10 +417,10 @@ export function VillageForm({
           disabled={saving}
         >
           {saving
-            ? "กำลังบันทึก..."
+            ? "Saving..."
             : village
-              ? "บันทึกการแก้ไข"
-              : "เพิ่ม Village"}
+              ? "Save changes"
+              : "Add Village"}
         </button>
 
         <button
@@ -428,7 +428,7 @@ export function VillageForm({
           onClick={onCancel}
           disabled={saving}
         >
-          ยกเลิก
+          Cancel
         </button>
       </div>
     </form>

@@ -13,9 +13,9 @@ export function AppLayout() {
         <nav className="app-nav">
           <NavLink to="/world">World</NavLink>
           <NavLink to="/products">Products</NavLink>
-          <NavLink to="/market">Market</NavLink>
           <NavLink to="/villages">Villages</NavLink>
           <NavLink to="/routes">Routes</NavLink>
+          <NavLink to="/market">Markets</NavLink>
           <NavLink to="/simulator">Simulation</NavLink>
           <NavLink to="/settings">Database & Settings</NavLink>
         </nav>

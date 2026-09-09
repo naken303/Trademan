@@ -9,7 +9,7 @@ test("app loads and core navigation pages initialize", async ({ page }) => {
     ["Products", "Products"],
     ["Villages", "Village Management"],
     ["Routes", "Route Management"],
-    ["Market", "Market Management"],
+    ["Markets", "Market Management"],
     ["Database & Settings", "Database & Settings"],
     ["Simulation", "Simulation"],
   ] as const) {
