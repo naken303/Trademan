@@ -3,7 +3,7 @@
 ## Last Updated
 
 - Date: 2026-09-09
-- Commit: eef812a
+- Commit: 8e1b91d
 - Branch: main
 
 ## Current Phase
@@ -14,9 +14,9 @@
 
 ## Repository Status
 
-- Working Tree: Pending initial-inventory/API-test commit
-- Latest Commit: `eef812a Update Codex status after foundation hardening`
-- Notes: This status note is included with the pending implementation commit.
+- Working Tree: Clean after `8e1b91d`; this commit-reference update is pending separately.
+- Latest Commit: `8e1b91d Complete initial inventory accounting and API regression tests`
+- Notes: Implementation and verification status were included in `8e1b91d`; this follow-up records its final hash.
 
 ## Verification
 
@@ -110,4 +110,4 @@
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
 | 2026-09-09 | `49a3981` | PASS | PASS | FAIL | NOT_RUN | Build completed with a non-failing chunk-size warning; 7 test files/18 tests passed; lint reported seven errors. |
 | 2026-09-09 | `2bc38c2` | PASS | PASS | PASS | NOT_RUN | 9 test files/23 tests passed; E2E script is not defined. |
-| 2026-09-09 | pending initial-inventory/API-test commit | PASS | PASS | PASS | NOT_RUN | 11 test files/28 tests passed; E2E script is not defined. |
+| 2026-09-09 | `8e1b91d` | PASS | PASS | PASS | NOT_RUN | 11 test files/28 tests passed; E2E script is not defined. |
