@@ -3,6 +3,10 @@ export interface InventoryItem {
   quantity: number;
 }
 
+export interface InitialInventoryItem extends InventoryItem {
+  unitCost: number;
+}
+
 export interface PlayerInventory {
   items: InventoryItem[];
   capacityCrates: number;

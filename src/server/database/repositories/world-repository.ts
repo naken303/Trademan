@@ -85,11 +85,15 @@ export function getWorld(): WorldData {
 
   const initialInventory = db
     .prepare(`
-      SELECT product_id, quantity
+      SELECT product_id, quantity, unit_cost
       FROM player_initial_inventory
       ORDER BY product_id
     `)
-    .all() as Array<{ product_id: string; quantity: number }>;
+    .all() as Array<{
+      product_id: string;
+      quantity: number;
+      unit_cost: number;
+    }>;
 
   return {
     schemaVersion: settings.schema_version,
@@ -113,6 +117,7 @@ export function getWorld(): WorldData {
       initialInventory: initialInventory.map((item) => ({
         productId: item.product_id,
         quantity: item.quantity,
+        unitCost: item.unit_cost,
       })),
     },
 

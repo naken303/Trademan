@@ -16,7 +16,9 @@ function createWorld(): WorldData {
       money: 125,
       inventoryCapacityCrates: 4,
       continuousMode: true,
-      initialInventory: [{ productId: "WOOD", quantity: 3 }],
+      initialInventory: [
+        { productId: "WOOD", quantity: 3, unitCost: 4.5 },
+      ],
     },
     simulation: { startDay: 3, startHour: 7 },
     optimization: { periodDays: 9, beamWidth: 12, maxSteps: 34 },

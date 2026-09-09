@@ -73,12 +73,17 @@ export function createInitialSimulationState(
     
       money: world.player.money,
     
-      inventory:
-        structuredClone(
-          world.player.initialInventory,
-        ),
+      inventory: world.player.initialInventory.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+      })),
     
-      inventoryCost: {},
+      inventoryCost: Object.fromEntries(
+        world.player.initialInventory.map((item) => [
+          item.productId,
+          item.quantity * item.unitCost,
+        ]),
+      ),
     },
 
     villages,

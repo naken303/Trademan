@@ -164,13 +164,18 @@ export function importWorld(
       const insertInitialInventory = db.prepare(`
         INSERT INTO player_initial_inventory (
           product_id,
-          quantity
+          quantity,
+          unit_cost
         )
-        VALUES (?, ?)
+        VALUES (?, ?, ?)
       `);
 
       for (const item of data.player.initialInventory) {
-        insertInitialInventory.run(item.productId, item.quantity);
+        insertInitialInventory.run(
+          item.productId,
+          item.quantity,
+          item.unitCost,
+        );
       }
 
       db.prepare(`

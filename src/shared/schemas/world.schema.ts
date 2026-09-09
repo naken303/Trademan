@@ -20,6 +20,7 @@ export const worldDataSchema = z.object({
       z.object({
         productId: z.string().min(1),
         quantity: z.number().int().positive(),
+        unitCost: z.number().nonnegative(),
       }),
     ),
   }),

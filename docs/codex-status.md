@@ -3,20 +3,20 @@
 ## Last Updated
 
 - Date: 2026-09-09
-- Commit: 2bc38c2
+- Commit: eef812a
 - Branch: main
 
 ## Current Phase
 
 - Phase: Foundation hardening
-- Current Task: Add HTTP route regression coverage and define initial-inventory cost basis
-- Task Status: `in-progress`
+- Current Task: Initial inventory cost basis and HTTP API regression coverage
+- Task Status: `completed`
 
 ## Repository Status
 
-- Working Tree: Clean after `2bc38c2`; this status-note update is pending its own commit.
-- Latest Commit: `2bc38c2 Fix foundation persistence and simulation accounting`
-- Notes: Foundation fixes were committed separately from this follow-up status update.
+- Working Tree: Pending initial-inventory/API-test commit
+- Latest Commit: `eef812a Update Codex status after foundation hardening`
+- Notes: This status note is included with the pending implementation commit.
 
 ## Verification
 
@@ -33,7 +33,7 @@
 - Command: `npm run test`
 - Status: `PASS`
 - Date: 2026-09-09
-- Tests: 9 test files passed; 23 tests passed.
+- Tests: 11 test files passed; 28 tests passed.
 - Error Summary: None
 - Details: Vitest completed successfully.
 
@@ -54,10 +54,10 @@
 
 ## Changes In Last Task
 
-- Files changed: Server persistence/API, simulation validation/accounting, affected client form lifecycle handling, tests, migration, and this status note.
-- What changed: Replaced ESM-incompatible `require`, persisted Village visual and configurable WorldData fields, fixed partial-sale cost tracking, rejected zero reset durations, isolated Vitest SQLite state, and removed synchronous effect state updates.
-- Why: Make the existing foundation reliable before route management or optimizer work.
-- Behavior affected: World import/reload preserves configurable data; village visuals round-trip; partial sales retain correct cost basis; malformed reset durations are rejected; lint passes.
+- Files changed: Shared inventory/player contracts and schema; simulation initialization; database migration/import/repository; Express app setup; initial-inventory, persistence, and HTTP tests; this status note.
+- What changed: Added required `unitCost` to initial inventory, persisted it, initialized total product cost basis, extracted `createApp()`, and added World/Village HTTP regression coverage.
+- Why: Complete foundation accounting and verify current API routes through actual HTTP requests.
+- Behavior affected: Selling initial inventory now realizes profit from explicit weighted cost; API setup is independently testable without starting the production listener.
 
 ## Known Issues
 
@@ -67,19 +67,7 @@
    - Impact: N/A
    - Recommended action: Continue to verify after each scoped change.
 
-2. High
-   - Location: `src/simulation/simulation-state.ts`
-   - Problem: Initial inventory has no explicit cost-basis field in the shared WorldData contract.
-   - Impact: A simulation that sells initial inventory cannot derive realized profit without assuming a zero cost basis.
-   - Recommended action: Define an explicit initial-inventory cost-basis contract before enabling trading from initial inventory.
-
-3. Medium
-   - Location: `src/server/routes/`, `tests/server/`
-   - Problem: Server persistence behavior is covered, but HTTP-level GET/POST/PUT route regression tests are not present.
-   - Impact: Route wiring and response behavior have less automated coverage than repository behavior.
-   - Recommended action: Add isolated HTTP API tests when an app test harness is introduced.
-
-4. Low
+2. Low
    - Location: Vite production output
    - Problem: One generated JavaScript chunk exceeds 500 kB after minification.
    - Impact: Build passes, but first-load performance can be affected.
@@ -94,22 +82,27 @@
 - World editor shell, product CRUD/image upload, market management, and village-management work.
 - TypeScript village-position contract build blocker fixed in commit `49a3981`.
 - Foundation hardening: ESM world route import, Village visual persistence, configurable WorldData persistence, partial-sale accounting, reset validation, isolated test SQLite, and lint fixes.
+- Initial inventory uses explicit per-unit cost and is covered through persistence, simulation initialization, partial/full sales, multiple products, and zero-cost inventory tests.
+- World and Village routes are covered through isolated HTTP regression tests using `createApp()` and an ephemeral local listener.
 
 ## Remaining Work
 
-1. Define and implement initial-inventory cost basis before simulation trading UI or optimizer work.
-2. Add HTTP API regression coverage for World and Village routes.
-3. Implement Route Management UI and route CRUD layers.
-4. Implement Simulation UI for runtime state, travel, trading, inventory, and reset display.
-5. Implement optimizer search, worker execution, result UI, validation, performance work, and full scenario tests.
+1. Implement Route Management.
+2. Implement Simulation UI.
+3. Implement import/export/backup and remaining editor/settings integration.
+4. Add E2E and full scenario coverage.
+5. Complete UX and release cleanup.
+6. Implement optimizer work later.
 
 ## Important Notes For ChatGPT
 
-- The pending foundation-hardening change adds migration `002_world_settings.sql`; existing databases are upgraded through the migration runner.
+- Initial inventory entries require `{ productId, quantity, unitCost }`; runtime `inventoryCost` is initialized as `quantity * unitCost` per product.
+- Migration `003_initial_inventory_unit_cost.sql` preserves existing databases and explicitly maps legacy rows without recorded cost to `unitCost = 0`.
+- `createApp()` owns Express/database setup; `server.ts` owns only port selection and listening.
 - Do not re-import the demo world during server startup; SQLite runtime state must survive restart.
 - Shared types and Zod schemas are the contract between client, server, simulation, and persistence.
 - The optimizer's primary objective is accumulated profit; continuous selling is only a tie-break preference.
-- Latest verification: build, test, and lint pass; E2E was not run because no E2E npm script exists.
+- Latest verification: build, 28 tests, and lint pass; E2E was not run because no E2E npm script exists.
 
 ## Verification History
 
@@ -117,3 +110,4 @@
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
 | 2026-09-09 | `49a3981` | PASS | PASS | FAIL | NOT_RUN | Build completed with a non-failing chunk-size warning; 7 test files/18 tests passed; lint reported seven errors. |
 | 2026-09-09 | `2bc38c2` | PASS | PASS | PASS | NOT_RUN | 9 test files/23 tests passed; E2E script is not defined. |
+| 2026-09-09 | pending initial-inventory/API-test commit | PASS | PASS | PASS | NOT_RUN | 11 test files/28 tests passed; E2E script is not defined. |
