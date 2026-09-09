@@ -59,7 +59,9 @@ function generateActions(world: WorldData, state: SimulationState): OptimizerAct
   const products = new Map(world.products.map((product) => [product.id, product]));
   const actions: OptimizerAction[] = [];
 
-  for (const market of world.markets.filter((item) => item.villageId === state.player.location)) {
+  for (const market of world.markets
+    .filter((item) => item.villageId === state.player.location)
+    .sort((left, right) => left.id.localeCompare(right.id))) {
     const product = products.get(market.productId);
     const available = runtimeVillage.markets[market.id]?.quantity ?? 0;
     if (!product || available <= 0) continue;

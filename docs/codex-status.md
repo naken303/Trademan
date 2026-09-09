@@ -3,20 +3,20 @@
 ## Last Updated
 
 - Date: 2026-09-10
-- Commit: This commit (`Add optimizer UI`)
+- Commit: This commit (`Harden optimizer search quality`)
 - Branch: main
 
 ## Current Phase
 
 - Phase: Optimizer implementation
-- Current Task: Optimizer UI integration
+- Current Task: Optimizer quality and performance hardening
 - Task Status: `completed`
 
 ## Repository Status
 
 - Working Tree: Clean after this commit.
-- Latest Commit: This commit (`Add optimizer UI`)
-- Notes: Optimizer runs through the existing Worker-backed HTTP API and results are presented without client-side search logic.
+- Latest Commit: This commit (`Harden optimizer search quality`)
+- Notes: Bounded beam search is deterministic for the same valid world/options except for elapsed timing; exact global optimality is not guaranteed.
 
 ## Verification
 
@@ -33,7 +33,7 @@
 - Command: `npm run test`
 - Status: `PASS`
 - Date: 2026-09-10
-- Tests: 17 test files passed; 55 tests passed.
+- Tests: 17 test files passed; 63 tests passed.
 - Error Summary: None
 - Details: Vitest completed successfully.
 
@@ -54,10 +54,10 @@
 
 ## Changes In Last Task
 
-- Files changed: Optimizer API client/page/styles; client router and navigation; Playwright core scenario; this status note.
-- What changed: Added a lazy Optimizer page with bounded run controls, recoverable request states, readable plan and final-state output, and search statistics.
-- Why: Make the existing Worker-backed optimizer usable from the application without duplicating search or simulation behavior in React.
-- Behavior affected: Users can run optimizer searches against persisted WorldData and inspect realized profit, chronological actions, final inventory/capacity, timing, and search statistics.
+- Files changed: Optimizer candidate ordering; optimizer replay/reference test helpers and regression suite; this status note.
+- What changed: Stabilized market candidate ordering and added replay invariants, reordered-input determinism, state-signature coverage, multi-product crates, initial cost basis, multi-reset routes, cyclic termination, tiny exact-reference, and bounded medium-scenario tests.
+- Why: Verify search results remain replayable through SimulationEngine, deterministic, profit-first, and bounded without replacing beam search or changing game rules.
+- Behavior affected: Equivalent valid world/options now have explicit deterministic market-action ordering; public optimizer, Worker/API, and UI contracts are unchanged.
 
 ## Known Issues
 
@@ -71,7 +71,7 @@
    - Location: N/A
    - Problem: No low-priority release issue has been verified.
    - Impact: N/A
-   - Recommended action: Continue with optimizer quality and performance hardening as a separate bounded task.
+   - Recommended action: Continue with optimizer final E2E, release verification, and project completion review.
 
 ## Completed Milestones
 
@@ -94,10 +94,11 @@
 - Optimizer core searches bounded simulation-backed buy/sell/travel plans with deterministic state signatures, beam retention, per-run caching, and search statistics.
 - Optimizer Worker/API integration runs one isolated search worker per request with bounded overrides, timeout cleanup, and authoritative repository WorldData.
 - Optimizer UI runs the Worker-backed API with validated limits and presents named plan actions, final runtime state, and search statistics.
+- Optimizer hardening verifies plan replay, deterministic ordering, material state signatures, multi-product crate use, reset-sensitive travel, initial inventory cost basis, cyclic termination, and bounded search statistics.
 
 ## Remaining Work
 
-1. Optimizer quality and performance hardening.
+1. Optimizer final E2E, release verification, and project completion review.
 
 ## Important Notes For ChatGPT
 
@@ -122,13 +123,17 @@
 - Worker bootstrap prefers a compiled `.js` entry and falls back to the repository's current TypeScript/ESM runtime; a post-build standalone worker smoke returned a profitable result.
 - Optimizer UI loads persisted optimization/player/world settings from the existing world endpoint and never sends WorldData to the optimizer API.
 - Optimizer plan prices and travel durations are presentation details resolved from persisted markets/routes; profit and final runtime state come directly from `OptimizerResult`.
+- Production optimization remains bounded beam search: accumulated realized profit is primary, unsold inventory is not realized profit, continuous mode is tie-break only, and exact global optimality is not guaranteed.
+- Identical valid WorldData/options produce the same plan and material final state; only `statistics.elapsedMs` is wall-clock dependent.
+- Search limits (`periodDays`, `beamWidth`, `maxSteps`, and `maxExpandedStates`) bound runtime/state growth; the cache remains isolated per run/Worker.
+- A deliberately tiny exhaustive helper exists only in optimizer tests to compare maximum realized profit on safely bounded worlds; it is not exported to production.
 - Do not re-import the demo world during server startup; SQLite runtime state must survive restart.
 - Shared types and Zod schemas are the contract between client, server, simulation, and persistence.
 - The optimizer's primary objective is accumulated profit; continuous selling is only a tie-break preference.
-- Latest verification: build without chunk warnings, 55 Vitest tests, lint, and 4 Playwright E2E tests passed.
+- Latest verification: build without chunk warnings, 63 Vitest tests, lint, and 4 Playwright E2E tests passed.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-10 | This commit | PASS | PASS | PASS | PASS | 17 Vitest files/55 tests and 4 Playwright tests passed; optimizer UI E2E found buy/travel/sell actions and positive realized profit. |
+| 2026-09-10 | This commit | PASS | PASS | PASS | PASS | 17 Vitest files/63 tests and 4 Playwright tests passed; hardened optimizer replay/determinism/bounds and Worker/API/UI regressions passed. |
