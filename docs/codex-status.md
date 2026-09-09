@@ -3,20 +3,20 @@
 ## Last Updated
 
 - Date: 2026-09-10
-- Commit: This commit (`Complete UX and release cleanup`)
+- Commit: This commit (`Implement optimizer core search`)
 - Branch: main
 
 ## Current Phase
 
-- Phase: Non-optimizer release readiness
-- Current Task: UX and release cleanup
+- Phase: Optimizer implementation
+- Current Task: Optimizer Core Search Foundation
 - Task Status: `completed`
 
 ## Repository Status
 
 - Working Tree: Clean after this commit.
-- Latest Commit: This commit (`Complete UX and release cleanup`)
-- Notes: The implemented non-optimizer application is release-ready; Optimizer remains intentionally out of scope.
+- Latest Commit: This commit (`Implement optimizer core search`)
+- Notes: Optimizer core is internal only; no HTTP endpoint, Worker Thread, or React UI exists yet.
 
 ## Verification
 
@@ -33,7 +33,7 @@
 - Command: `npm run test`
 - Status: `PASS`
 - Date: 2026-09-10
-- Tests: 15 test files passed; 43 tests passed.
+- Tests: 16 test files passed; 51 tests passed.
 - Error Summary: None
 - Details: Vitest completed successfully.
 
@@ -54,10 +54,10 @@
 
 ## Changes In Last Task
 
-- Files changed: Lazy app routing/navigation/layout; World, Village, Market, and Settings UX/error handling; E2E navigation assertion; release smoke checklist; this status note.
-- What changed: Standardized visible copy/actions and page spacing, added recoverable failure states, corrected Market image URLs, and split implemented pages into lazy chunks.
-- Why: Make the completed non-optimizer application coherent and ready for release verification.
-- Behavior affected: Navigation is ordered consistently, failures remain readable/recoverable, and the initial production bundle no longer triggers Vite's 500 kB warning.
+- Files changed: Optimizer contracts, deterministic state signature, scoring, beam search/public export, focused optimizer tests, and this status note.
+- What changed: Added bounded buy/sell/travel candidate generation, simulation-backed transitions, per-run deduplication, profit-first deterministic scoring, and search statistics.
+- Why: Establish the first working Optimizer core without adding transport or UI layers.
+- Behavior affected: `runOptimizer(world, options)` now returns a best-found realized-profit plan and final simulation state; persistence and existing application behavior are unchanged.
 
 ## Known Issues
 
@@ -71,7 +71,7 @@
    - Location: N/A
    - Problem: No low-priority release issue has been verified.
    - Impact: N/A
-   - Recommended action: Begin the Optimizer phase as a separate bounded task.
+   - Recommended action: Continue with Worker Thread and HTTP API integration as a separate bounded task.
 
 ## Completed Milestones
 
@@ -91,10 +91,11 @@
 - Playwright E2E covers app navigation, Simulation initialization, buy/travel/sell UI flow, and rejected-import persistence safety.
 - Deterministic simulation scenarios cover money, crates, inventory cost basis, realized profit, resets across travel, and all reverse-route cases.
 - Non-optimizer UX/release cleanup is complete, including consistent navigation/copy, recoverable page errors, lazy route chunks, and a manual smoke checklist.
+- Optimizer core searches bounded simulation-backed buy/sell/travel plans with deterministic state signatures, beam retention, per-run caching, and search statistics.
 
 ## Remaining Work
 
-1. Optimizer implementation.
+1. Optimizer Worker Thread + HTTP API integration.
 
 ## Important Notes For ChatGPT
 
@@ -111,13 +112,16 @@
 - E2E backend startup creates a temporary SQLite database and backup directory, seeds the demo world deterministically, and cleans them on shutdown.
 - World Editor continues to load persisted villages, positions, routes, markets, and products; position saves refresh the persisted aggregate and expose save failures inline.
 - Page-level lazy loading reduced the largest generated JavaScript chunk to approximately 233 kB in the latest build.
+- Optimizer transitions instantiate the existing `SimulationEngine` from each candidate state; cash, capacity, market, reserve, reset, travel, reverse-route, and profit rules are not duplicated.
+- Optimizer state signatures include time/location, player money, sorted inventory and cost basis, every village timer/reserve, all runtime market quantities, and accumulated realized profit.
+- Frontier ranking uses unrealized liquidation potential only as a tie-break heuristic; result profit remains `SimulationState.accumulatedProfit`, and exact global optimality is not claimed.
 - Do not re-import the demo world during server startup; SQLite runtime state must survive restart.
 - Shared types and Zod schemas are the contract between client, server, simulation, and persistence.
 - The optimizer's primary objective is accumulated profit; continuous selling is only a tie-break preference.
-- Latest verification: build without chunk warnings, 43 Vitest tests, lint, and 3 Playwright E2E tests pass.
+- Latest verification: build without chunk warnings, 51 Vitest tests, lint, and 3 Playwright E2E tests pass.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-10 | This commit | PASS | PASS | PASS | PASS | 15 Vitest files/43 tests and 3 Playwright tests passed; production build completed without chunk warnings. |
+| 2026-09-10 | This commit | PASS | PASS | PASS | PASS | 16 Vitest files/51 tests and 3 Playwright tests passed; production build completed without chunk warnings. |
