@@ -3,20 +3,20 @@
 ## Last Updated
 
 - Date: 2026-09-09
-- Commit: This commit (`Implement world import export backup and settings`)
+- Commit: This commit (`Add E2E and full scenario coverage`)
 - Branch: main
 
 ## Current Phase
 
 - Phase: Feature implementation
-- Current Task: World import/export/backup and settings integration
+- Current Task: E2E and full core-scenario regression coverage
 - Task Status: `completed`
 
 ## Repository Status
 
 - Working Tree: Clean after this commit.
-- Latest Commit: This commit (`Implement world import export backup and settings`)
-- Notes: Valid imports replace persisted WorldData transactionally; backups are JSON snapshots under local `backups/`.
+- Latest Commit: This commit (`Add E2E and full scenario coverage`)
+- Notes: Playwright starts isolated seeded backend/frontend servers; E2E never uses the runtime SQLite database or real backups directory.
 
 ## Verification
 
@@ -33,7 +33,7 @@
 - Command: `npm run test`
 - Status: `PASS`
 - Date: 2026-09-09
-- Tests: 14 test files passed; 40 tests passed.
+- Tests: 15 test files passed; 43 tests passed.
 - Error Summary: None
 - Details: Vitest completed successfully.
 
@@ -47,17 +47,17 @@
 
 ### E2E
 
-- Command: N/A (no E2E script is defined in `package.json`)
-- Status: `NOT_RUN`
+- Command: `npm run e2e`
+- Status: `PASS`
 - Date: 2026-09-09
-- Details: Playwright is installed but no project E2E command was available to run.
+- Details: 3 Playwright tests passed using isolated temporary SQLite and backup paths.
 
 ## Changes In Last Task
 
-- Files changed: World file service/API; Database & Settings page/styles/navigation; focused persistence and HTTP tests; this status note.
-- What changed: Added full WorldData JSON export/import, manual JSON backups, and editing for persisted world/player/simulation/optimization settings and initial inventory.
-- Why: Complete the bounded world configuration and database-management workflow.
-- Behavior affected: Users can export, transactionally import after confirmation, create local backups, and save all settings already present in the shared WorldData contract.
+- Files changed: Playwright/package/Vite configuration; isolated E2E server/database paths; core UI/API E2E tests; deterministic simulation scenario tests; this status note.
+- What changed: Added automated browser smoke/trading/import safety coverage plus precise trading, reset, cost-basis, and reverse-route regressions.
+- Why: Establish the non-optimizer application safety net before UX/release cleanup.
+- Behavior affected: No game behavior changed; test startup can select isolated database and backup paths through environment variables.
 
 ## Known Issues
 
@@ -88,12 +88,13 @@
 - Simulation UI uses a thin controller/Zustand layer over the existing engine, including reverse-route fallback and travel-driven resets.
 - Full WorldData export/import and local JSON backup creation are available through the server and Database & Settings page.
 - World/player/simulation/optimization settings and initial inventory are editable and persist through the existing transactional importer.
+- Playwright E2E covers app navigation, Simulation initialization, buy/travel/sell UI flow, and rejected-import persistence safety.
+- Deterministic simulation scenarios cover money, crates, inventory cost basis, realized profit, resets across travel, and all reverse-route cases.
 
 ## Remaining Work
 
-1. Add E2E and full scenario coverage.
-2. Complete UX and release cleanup.
-3. Implement optimizer work later.
+1. UX and release cleanup.
+2. Implement optimizer work later.
 
 ## Important Notes For ChatGPT
 
@@ -106,13 +107,15 @@
 - Export and backup serialize persisted WorldData only; runtime Simulation state is excluded.
 - Import is validated with the shared Zod schema before the existing SQLite transaction runs; schema and database failures leave the prior world unchanged.
 - Tests pass explicit temporary directories to backup creation and do not touch the real `backups/` directory or runtime SQLite database.
+- `npm run test` excludes `tests/e2e/**`; `npm run e2e` owns Playwright execution and its automatic isolated web servers.
+- E2E backend startup creates a temporary SQLite database and backup directory, seeds the demo world deterministically, and cleans them on shutdown.
 - Do not re-import the demo world during server startup; SQLite runtime state must survive restart.
 - Shared types and Zod schemas are the contract between client, server, simulation, and persistence.
 - The optimizer's primary objective is accumulated profit; continuous selling is only a tie-break preference.
-- Latest verification: build, 40 tests, and lint pass; E2E was not run because no E2E npm script exists.
+- Latest verification: build, 43 Vitest tests, lint, and 3 Playwright E2E tests pass.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-09 | This commit | PASS | PASS | PASS | NOT_RUN | 14 test files/40 tests passed; build has a non-failing chunk-size warning; E2E script is not defined. |
+| 2026-09-09 | This commit | PASS | PASS | PASS | PASS | 15 Vitest files/43 tests and 3 Playwright tests passed; build has a non-failing chunk-size warning. |

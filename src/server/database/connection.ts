@@ -2,9 +2,13 @@ import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
+const configuredDatabasePath = process.env.VILLAGE_TRADE_DATABASE_PATH;
+
 const databasePath = process.env.VITEST
   ? ":memory:"
-  : resolve(
+  : configuredDatabasePath
+    ? resolve(configuredDatabasePath)
+    : resolve(
       process.cwd(),
       "database",
       "village-trade.sqlite",

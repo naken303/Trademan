@@ -10,7 +10,7 @@ export function serializeWorld(world: WorldData): string {
 
 export function createWorldBackup(
   world: WorldData,
-  backupDirectory = resolve(process.cwd(), "backups"),
+  backupDirectory = process.env.VILLAGE_TRADE_BACKUP_DIRECTORY ?? resolve(process.cwd(), "backups"),
 ): string {
   mkdirSync(backupDirectory, { recursive: true });
   const timestamp = new Date().toISOString().replaceAll(":", "-").replaceAll(".", "-");
