@@ -140,3 +140,7 @@ export function deleteMarket(
     );
   }
 }
+
+export function getMarketByLogicalKey(villageId: string, productId: string, side: Market["side"]): Market | null {
+  return getAllMarkets().find((market) => market.villageId === villageId && market.productId === productId && market.side === side) ?? null;
+}

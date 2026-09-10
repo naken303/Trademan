@@ -86,18 +86,18 @@ export function MarketForm({
 
     if (
       !Number.isFinite(unitPrice) ||
-      unitPrice < 0
+      unitPrice <= 0
     ) {
-      setError("Unit price must be zero or greater.");
+      setError("Unit price must be greater than zero.");
       return;
     }
 
     if (
       !Number.isInteger(initialQuantity) ||
-      initialQuantity < 0
+      initialQuantity <= 0
     ) {
       setError(
-        "Initial quantity must be a whole number of zero or greater.",
+        "Initial quantity must be a positive whole number.",
       );
       return;
     }
@@ -223,7 +223,7 @@ export function MarketForm({
         <input
           id="market-price"
           type="number"
-          min="0"
+          min="0.01"
           step="0.01"
           value={form.unitPrice}
           onChange={(event) =>
@@ -244,7 +244,7 @@ export function MarketForm({
         <input
           id="market-quantity"
           type="number"
-          min="0"
+          min="1"
           step="1"
           value={form.initialQuantity}
           onChange={(event) =>

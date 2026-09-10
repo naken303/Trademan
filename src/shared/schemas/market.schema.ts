@@ -6,6 +6,6 @@ export const marketSchema = z.object({
   villageId: z.string().min(1),
   productId: z.string().min(1),
   side: marketSideSchema,
-  unitPrice: z.number().nonnegative(),
-  initialQuantity: z.number().int().nonnegative(),
+  unitPrice: z.number().positive(),
+  initialQuantity: z.number().int().positive(),
 });

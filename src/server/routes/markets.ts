@@ -6,6 +6,7 @@ import {
   deleteMarket,
   getAllMarkets,
   getMarketById,
+  getMarketByLogicalKey,
   updateMarket,
 } from "../database/repositories/market-repository";
 
@@ -126,6 +127,11 @@ marketsRouter.post("/", (req, res) => {
       return;
     }
 
+    if (getMarketByLogicalKey(parsed.data.villageId, parsed.data.productId, parsed.data.side)) {
+      res.status(409).json({ error: "This market entry already exists" });
+      return;
+    }
+
     const market = {
       id: randomUUID(),
       ...parsed.data,
@@ -200,6 +206,12 @@ marketsRouter.put("/:id", (req, res) => {
       res.status(400).json({
         error: `Product not found: ${parsed.data.productId}`,
       });
+      return;
+    }
+
+    const duplicate = getMarketByLogicalKey(parsed.data.villageId, parsed.data.productId, parsed.data.side);
+    if (duplicate && duplicate.id !== marketId) {
+      res.status(409).json({ error: "This market entry already exists" });
       return;
     }
 

@@ -6,6 +6,8 @@ export type VillageNodeData = Record<string, unknown> & {
   village: Village;
   markets: Market[];
   products: Product[];
+  productDropActive: boolean;
+  onProductDrop: (productId: string, villageId: string) => void;
 };
 
 export type VillageNodeType = Node<VillageNodeData, "village">;
@@ -56,18 +58,21 @@ export function VillageNode({
   );
 
   return (
-    <div
+    <div className={`village-node${data.productDropActive ? " product-drop-active" : ""}`} data-testid={`village-node-${village.id}`}
+      onDragOver={(event) => { if (data.productDropActive) { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; } }}
+      onDrop={(event) => { event.preventDefault(); try { const payload = JSON.parse(event.dataTransfer.getData("application/x-village-trade-product")) as unknown; if (typeof payload === "object" && payload !== null && "type" in payload && "productId" in payload && payload.type === "product" && typeof payload.productId === "string") data.onProductDrop(payload.productId, village.id); } catch { /* Ignore malformed drag payloads. */ } }}
       style={{
         minWidth: "220px",
         padding: "12px",
-        border: "2px solid #555",
+        border: "2px solid var(--color-primary)",
         borderRadius: "10px",
-        background: "#ffffff",
-        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
+        background: "var(--color-surface-2)",
+        color: "var(--color-text)",
+        boxShadow: "var(--shadow-panel)",
       }}
     >
-      <Handle type="target" position={Position.Left} />
-      <Handle type="source" position={Position.Right} />
+      <Handle type="target" position={Position.Left} data-testid={`route-target-${village.id}`} title={`Connect route to ${village.name}`} />
+      <Handle type="source" position={Position.Right} data-testid={`route-source-${village.id}`} title={`Start route from ${village.name}`} />
 
       <div
         style={{
@@ -148,6 +153,7 @@ export function VillageNode({
           ))}
         </div>
       )}
+      <div className="village-market-counts"><span>Supply {supplyMarkets.length}</span><span>Demand {demandMarkets.length}</span></div>
     </div>
   );
 }

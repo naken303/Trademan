@@ -48,7 +48,7 @@ function StepRow({ step, previousVillageId, previousProfit, world, index }: {
     detail = `${villageName(step.villageId)}${market ? ` · ${market.unitPrice.toLocaleString()} ${world.settings.currency}/unit · ${action.type === "buy" ? "cost" : "revenue"} ${total!.toLocaleString()} ${world.settings.currency}` : " · price unavailable"}`;
     if (action.type === "sell") detail += ` · realized +${(step.accumulatedProfit - previousProfit).toLocaleString()} ${world.settings.currency}`;
   }
-  return <li className={`optimizer-step ${action.type}`}><span>{index + 1}</span><div><strong>{title}</strong><small>{detail}</small><small>Money: {step.playerMoney.toLocaleString()} {world.settings.currency} · {timeLabel(step.time)}</small></div></li>;
+  return <li className={`optimizer-step ${action.type}`}><span>{index + 1}</span><div><strong><b className="optimizer-action-badge">{action.type}</b>{title}</strong><small>{detail}</small><small>Money: {step.playerMoney.toLocaleString()} {world.settings.currency} · {timeLabel(step.time)}</small></div></li>;
 }
 
 export function OptimizerPage() {
@@ -86,7 +86,7 @@ export function OptimizerPage() {
   const productName = (id: string) => world.products.find((item) => item.id === id)?.name ?? `Missing product (${id})`;
   const fields: [keyof FormValues, string][] = [["periodDays", "Optimization period (days)"], ["beamWidth", "Beam width"], ["maxSteps", "Maximum plan steps"], ["maxExpandedStates", "Maximum expanded states"]];
   return <section className="optimizer-page">
-    <header><h2>Optimizer</h2><p>Search for the highest realized profit using the saved world.</p></header>
+    <header><h2>Optimizer</h2><p>Best plan found within the selected search limits. Exact global optimality is not guaranteed.</p></header>
     <form className="optimizer-controls" onSubmit={submit}>{fields.map(([key, label]) => <label key={key}>{label}<input aria-label={label} type="number" min="1" max={limits[key]} step="1" value={values[key]} disabled={running} onChange={(event) => setValues({ ...values, [key]: event.target.value })} /></label>)}
       <div className="optimizer-mode"><strong>Continuous mode: {world.player.continuousMode ? "On" : "Off"}</strong><small>Used only as a tie-break preference; realized profit remains the primary goal.</small></div>
       <button type="submit" disabled={running}>{running ? "Running optimizer..." : "Run Optimizer"}</button>

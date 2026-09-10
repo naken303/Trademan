@@ -7,6 +7,7 @@ import {
   deleteRoute,
   getAllRoutes,
   getRouteById,
+  getRouteByEndpoints,
   updateRoute,
 } from "../database/repositories/route-repository";
 import { getVillageById } from "../database/repositories/village-repository";
@@ -47,6 +48,10 @@ routesRouter.post("/", (req, res) => {
     res.status(400).json({ error: villageError });
     return;
   }
+  if (getRouteByEndpoints(parsed.data.from, parsed.data.to)) {
+    res.status(409).json({ error: "A route already exists for this direction" });
+    return;
+  }
   const route = { id: randomUUID(), ...parsed.data };
   createRoute(route);
   res.status(201).json(route);
@@ -66,6 +71,11 @@ routesRouter.put("/:id", (req, res) => {
   const villageError = validateVillages(parsed.data.from, parsed.data.to);
   if (villageError) {
     res.status(400).json({ error: villageError });
+    return;
+  }
+  const duplicate = getRouteByEndpoints(parsed.data.from, parsed.data.to);
+  if (duplicate && duplicate.id !== id) {
+    res.status(409).json({ error: "A route already exists for this direction" });
     return;
   }
   const route = { id, ...parsed.data };

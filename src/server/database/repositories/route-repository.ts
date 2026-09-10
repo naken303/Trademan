@@ -70,6 +70,10 @@ export function getRouteById(routeId: string): Route | null {
     : null;
 }
 
+export function getRouteByEndpoints(from: string, to: string): Route | null {
+  return getAllRoutes().find((route) => route.from === from && route.to === to) ?? null;
+}
+
 export function createRoute(route: Route): void {
   db.prepare(`
     INSERT INTO routes (

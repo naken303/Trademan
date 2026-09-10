@@ -201,4 +201,34 @@ describe("Route HTTP API", () => {
       expect(response.status).toBe(400);
     }
   });
+
+  it("rejects duplicate directions while allowing an explicit reverse route", async () => {
+    const duplicate = await request("/api/routes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from: "A", to: "B", travelTime: { days: 0, hours: 9 } }) });
+    expect(duplicate.status).toBe(409);
+    const reverseResponse = await request("/api/routes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from: "B", to: "A", travelTime: { days: 0, hours: 9 } }) });
+    expect(reverseResponse.status).toBe(201);
+    const reverse = await reverseResponse.json();
+    expect((await request(`/api/routes/${reverse.id}`, { method: "DELETE" })).status).toBe(200);
+  });
+});
+
+describe("Market HTTP API", () => {
+  it("enforces village/product/side uniqueness and allows both market sides", async () => {
+    const supplyInput = { villageId: "B", productId: "MILK", side: "supply", unitPrice: 3, initialQuantity: 4 };
+    const supplyResponse = await request("/api/markets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(supplyInput) });
+    expect(supplyResponse.status).toBe(201); const supply = await supplyResponse.json();
+    expect((await request("/api/markets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(supplyInput) })).status).toBe(409);
+
+    const demandResponse = await request("/api/markets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...supplyInput, side: "demand" }) });
+    expect(demandResponse.status).toBe(201); const demand = await demandResponse.json();
+    expect((await request(`/api/markets/${demand.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(supplyInput) })).status).toBe(409);
+    for (const market of [supply, demand]) expect((await request(`/api/markets/${market.id}`, { method: "DELETE" })).status).toBe(200);
+  });
+
+  it("rejects zero or negative price and quantity", async () => {
+    for (const input of [
+      { villageId: "B", productId: "MILK", side: "supply", unitPrice: 0, initialQuantity: 1 },
+      { villageId: "B", productId: "MILK", side: "supply", unitPrice: 1, initialQuantity: 0 },
+    ]) expect((await request("/api/markets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) })).status).toBe(400);
+  });
 });

@@ -1,83 +1,19 @@
-.app-layout {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.app-header {
-  min-height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  border-bottom: 1px solid #d9d9d9;
-  background: #ffffff;
-  gap: 20px;
-}
-
-.app-title {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.app-title h1 {
-  margin: 0;
-  font-size: 20px;
-}
-
-.app-title span {
-  color: #666;
-  font-size: 13px;
-}
-
-.app-nav {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.app-nav a {
-  padding: 8px 14px;
-  border-radius: 6px;
-  text-decoration: none;
-  color: #444;
-}
-
-.app-nav a:hover {
-  background: #f0f0f0;
-}
-
-.app-nav a.active {
-  background: #222;
-  color: #fff;
-}
-
-.app-content {
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  padding: 24px;
-}
-
-.page-state,
-.page-alert {
-  padding: 16px;
-  border: 1px solid #e4e7ec;
-  border-radius: 8px;
-  background: #fff;
-}
-
-.page-alert {
-  color: #b42318;
-  border-color: #fecdca;
-  background: #fef3f2;
-}
-
-@media (max-width: 900px) {
-  .app-header { align-items: flex-start; flex-direction: column; padding: 16px; }
-  .app-title span { display: none; }
-  .app-nav { justify-content: flex-start; }
-  .app-content { padding: 16px; }
+.app-layout { min-height: 100vh; background: var(--color-bg-app); }
+.app-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 20; display: flex; flex-direction: column; width: 224px; padding: var(--space-5) var(--space-3); border-right: 1px solid var(--color-border); background: var(--color-bg-navigation); }
+.app-title { display: flex; align-items: center; gap: var(--space-3); min-height: 56px; padding: 0 var(--space-2) var(--space-5); border-bottom: 1px solid var(--color-border); }
+.app-title h1 { margin: 0; font-size: .98rem; white-space: nowrap; } .app-title span { color: var(--color-text-muted); font-size: .75rem; }
+.brand-mark { display: grid; place-items: center; flex: 0 0 38px; height: 38px; border-radius: var(--radius-md); background: var(--color-primary); color: #fff !important; font-weight: 800; letter-spacing: -.04em; }
+.app-nav { display: flex; flex: 1; flex-direction: column; padding-top: var(--space-5); }
+.nav-group { display: grid; gap: var(--space-1); margin-bottom: var(--space-5); } .nav-group > span { padding: 0 10px 6px; color: var(--color-text-muted); font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.app-nav a { display: flex; align-items: center; min-height: 40px; padding: 8px 11px; border-left: 3px solid transparent; border-radius: var(--radius-sm); color: var(--color-text-secondary); font-weight: 600; text-decoration: none; }
+.app-nav a:hover { background: var(--color-surface-1); color: var(--color-text); } .app-nav a.active { border-left-color: var(--color-primary); background: #14294a; color: #fff; }
+.nav-settings { margin-top: auto; margin-bottom: 0; padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
+.app-content { min-height: 100vh; margin-left: 224px; padding: clamp(20px, 3vw, 36px); } .app-content > * { width: min(100%, 1440px); margin-inline: auto; }
+.page-state, .page-alert { padding: var(--space-4); } .page-alert > div { margin-top: var(--space-3); } .mobile-header, .nav-backdrop { display: none; }
+@media (max-width: 768px) {
+  .mobile-header { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; min-height: 64px; padding: 10px 16px; border-bottom: 1px solid var(--color-border); background: var(--color-bg-navigation); }
+  .mobile-header > div { display: grid; } .mobile-header span { color: var(--color-text-muted); font-size: .72rem; } .menu-toggle { min-height: 38px; }
+  .app-sidebar { width: min(280px, 84vw); transform: translateX(-102%); transition: transform .18s ease; box-shadow: var(--shadow-panel); } .app-sidebar.open { transform: translateX(0); }
+  .nav-backdrop { position: fixed; inset: 0; z-index: 15; display: block; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 0; background: rgb(2 6 23 / 70%); }
+  .nav-backdrop:hover { background: rgb(2 6 23 / 70%); } .app-content { min-height: calc(100vh - 64px); margin-left: 0; padding: var(--space-4); }
 }
