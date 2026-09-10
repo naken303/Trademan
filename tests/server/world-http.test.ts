@@ -212,6 +212,34 @@ describe("Route HTTP API", () => {
   });
 });
 
+describe("Product HTTP API", () => {
+  it("round-trips optional base prices and does not update an existing market", async () => {
+    const product = { id: "HTTP-P", name: "HTTP Product", unitsPerCrate: 10, baseSupplyPrice: 7 };
+    const created = await request("/api/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(product) });
+    expect(created.status).toBe(201);
+    expect(await created.json()).toEqual(product);
+
+    const marketResponse = await request("/api/markets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ villageId: "B", productId: product.id, side: "supply", unitPrice: 9, initialQuantity: 3 }) });
+    const market = await marketResponse.json();
+    expect(marketResponse.status).toBe(201);
+
+    const updatedProduct = { ...product, baseSupplyPrice: 12, baseDemandPrice: 15 };
+    const updated = await request(`/api/products/${product.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updatedProduct) });
+    expect(await updated.json()).toEqual(updatedProduct);
+    expect(await (await request(`/api/markets/${market.id}`)).json()).toMatchObject({ unitPrice: 9 });
+
+    expect((await request(`/api/markets/${market.id}`, { method: "DELETE" })).status).toBe(200);
+    expect((await request(`/api/products/${product.id}`, { method: "DELETE" })).status).toBe(204);
+  });
+
+  it("rejects invalid product base prices", async () => {
+    for (const value of [0, -1]) {
+      const response = await request("/api/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: `BAD-${value}`, name: "Bad", unitsPerCrate: 10, baseDemandPrice: value }) });
+      expect(response.status).toBe(400);
+    }
+  });
+});
+
 describe("Market HTTP API", () => {
   it("enforces village/product/side uniqueness and allows both market sides", async () => {
     const supplyInput = { villageId: "B", productId: "MILK", side: "supply", unitPrice: 3, initialQuantity: 4 };

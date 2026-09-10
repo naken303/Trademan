@@ -10,5 +10,7 @@ export const productSchema = z.object({
   name: z.string().min(1),
   category: z.string().optional(),
   unitsPerCrate: z.number().int().positive(),
+  baseSupplyPrice: z.number().positive().optional(),
+  baseDemandPrice: z.number().positive().optional(),
   image: productImageSchema.optional(),
 });

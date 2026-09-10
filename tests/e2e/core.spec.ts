@@ -112,19 +112,34 @@ test("World canvas creates and edits a directional route", async ({ page }) => {
   await expect(page.locator("tr").filter({ hasText: "Village C" }).filter({ hasText: "Village D" }).filter({ hasText: "0d 6h" })).toBeVisible();
 });
 
-test("World product drop creates a unique market assignment", async ({ page }) => {
+test("World product palette modes preserve drag defaults and persisted market prices", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/world");
+  await expect(page.getByRole("button", { name: "Show product images" })).toHaveAttribute("aria-pressed", "true");
+  expect(await page.locator(".product-palette-list").evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(3);
+  await page.setViewportSize({ width: 600, height: 900 });
+  expect(await page.locator(".product-palette-list").evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(2);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.getByLabel("Search products").fill("milk");
+  await expect(page.getByTestId("palette-product-MILK")).toBeVisible();
+  await page.getByRole("button", { name: "Show product details" }).click();
+  await expect(page.getByTestId("palette-product-MILK")).toContainText("MILK");
   await page.getByTestId("palette-product-MILK").dragTo(page.getByTestId("village-node-B"));
   await expect(page.getByRole("heading", { name: "Add Product to Village" })).toBeVisible();
-  await page.getByLabel("Demand").check(); await page.getByLabel("Unit price").fill("11"); await page.getByLabel("Quantity (units)").fill("7");
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await expect(page.getByTestId("village-node-B")).toContainText("Demand 1");
-
-  await page.getByTestId("palette-product-MILK").dragTo(page.getByTestId("village-node-B"));
+  await expect(page.getByLabel("Unit price")).toHaveValue("20");
   await page.getByLabel("Demand").check();
-  await expect(page.getByRole("heading", { name: "Edit Milk Demand" })).toBeVisible();
-  await expect(page.getByLabel("Unit price")).toHaveValue("11");
+  await expect(page.getByLabel("Unit price")).toHaveValue("");
+  await page.getByLabel("Supply").check();
+  await expect(page.getByLabel("Unit price")).toHaveValue("20");
+  await page.getByLabel("Quantity (units)").fill("7");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(page.getByTestId("village-node-B")).toContainText("Supply 1");
+
+  await page.getByRole("button", { name: "Show product images" }).click();
+  await page.getByTestId("palette-product-MILK").dragTo(page.getByTestId("village-node-B"));
+  await expect(page.getByRole("heading", { name: "Edit Milk Supply" })).toBeVisible();
+  await expect(page.getByLabel("Unit price")).toHaveValue("20");
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByRole("link", { name: "Markets", exact: true }).click();
-  await expect(page.locator("tr").filter({ hasText: "Village B" }).filter({ hasText: "Milk" }).filter({ hasText: "DEMAND" }).filter({ hasText: "11" })).toBeVisible();
+  await expect(page.locator("tr").filter({ hasText: "Village B" }).filter({ hasText: "Milk" }).filter({ hasText: "SUPPLY" }).filter({ hasText: "20" })).toBeVisible();
 });

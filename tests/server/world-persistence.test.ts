@@ -22,7 +22,7 @@ function createWorld(): WorldData {
     },
     simulation: { startDay: 3, startHour: 7 },
     optimization: { periodDays: 9, beamWidth: 12, maxSteps: 34 },
-    products: [{ id: "WOOD", name: "Wood", unitsPerCrate: 10 }],
+    products: [{ id: "WOOD", name: "Wood", unitsPerCrate: 10, baseSupplyPrice: 4.5, baseDemandPrice: 8 }],
     villages: [
       {
         id: "A",

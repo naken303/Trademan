@@ -6,6 +6,8 @@ interface ProductRow {
   name: string;
   category: string | null;
   units_per_crate: number;
+  base_supply_price: number | null;
+  base_demand_price: number | null;
   image_path: string | null;
 }
 
@@ -17,6 +19,12 @@ function rowToProduct(row: ProductRow): Product {
       ? { category: row.category }
       : {}),
     unitsPerCrate: row.units_per_crate,
+    ...(row.base_supply_price !== null
+      ? { baseSupplyPrice: row.base_supply_price }
+      : {}),
+    ...(row.base_demand_price !== null
+      ? { baseDemandPrice: row.base_demand_price }
+      : {}),
     ...(row.image_path !== null
       ? {
           image: {
@@ -37,6 +45,8 @@ export function getAllProducts(): Product[] {
           name,
           category,
           units_per_crate,
+          base_supply_price,
+          base_demand_price,
           image_path
         FROM products
         ORDER BY name
@@ -58,6 +68,8 @@ export function getProductById(
           name,
           category,
           units_per_crate,
+          base_supply_price,
+          base_demand_price,
           image_path
         FROM products
         WHERE id = ?
@@ -76,9 +88,11 @@ export function createProduct(product: Product): void {
         name,
         category,
         units_per_crate,
+        base_supply_price,
+        base_demand_price,
         image_path
       )
-      VALUES (?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `,
   );
 
@@ -87,6 +101,8 @@ export function createProduct(product: Product): void {
     product.name,
     product.category ?? null,
     product.unitsPerCrate,
+    product.baseSupplyPrice ?? null,
+    product.baseDemandPrice ?? null,
     product.image?.path ?? null,
   );
 }
@@ -99,6 +115,8 @@ export function updateProduct(product: Product): void {
         name = ?,
         category = ?,
         units_per_crate = ?,
+        base_supply_price = ?,
+        base_demand_price = ?,
         image_path = ?
       WHERE id = ?
     `,
@@ -108,6 +126,8 @@ export function updateProduct(product: Product): void {
     product.name,
     product.category ?? null,
     product.unitsPerCrate,
+    product.baseSupplyPrice ?? null,
+    product.baseDemandPrice ?? null,
     product.image?.path ?? null,
     product.id,
   );

@@ -24,25 +24,30 @@
       "id": "MILK",
       "name": "Milk",
       "category": "Food",
-      "unitsPerCrate": 20
+      "unitsPerCrate": 20,
+      "baseSupplyPrice": 20
     },
     {
       "id": "EGG",
       "name": "Egg",
       "category": "Food",
-      "unitsPerCrate": 20
+      "unitsPerCrate": 20,
+      "baseSupplyPrice": 8
     },
     {
       "id": "VEG",
       "name": "Vegetable",
       "category": "Food",
-      "unitsPerCrate": 20
+      "unitsPerCrate": 20,
+      "baseSupplyPrice": 12,
+      "baseDemandPrice": 20
     },
     {
       "id": "NAIL",
       "name": "Nail",
       "category": "Material",
-      "unitsPerCrate": 20
+      "unitsPerCrate": 20,
+      "baseDemandPrice": 6
     }
   ],
   "villages": [

@@ -31,6 +31,21 @@ describe("world import, export, backup, and settings", () => {
     expect(worldDataSchema.parse(JSON.parse(serializeWorld(world)))).toEqual(world);
   });
 
+  it("exports and imports optional product base prices without requiring them on older products", () => {
+    const input = getWorld();
+    input.products = input.products.map((product, index) => {
+      const { baseSupplyPrice: _supply, baseDemandPrice: _demand, ...legacyProduct } = product;
+      void _supply; void _demand;
+      if (index === 0) return { ...legacyProduct, baseSupplyPrice: 17, baseDemandPrice: 29 };
+      if (index === 1) return { ...legacyProduct, baseSupplyPrice: 11 };
+      if (index === 2) return { ...legacyProduct, baseDemandPrice: 23 };
+      return legacyProduct;
+    });
+    importWorld(input);
+    const roundTrip = worldDataSchema.parse(JSON.parse(serializeWorld(getWorld())));
+    expect(roundTrip.products).toEqual(input.products);
+  });
+
   it("imports a valid world and preserves initial inventory unitCost", () => {
     const input: WorldData = {
       ...getWorld(),

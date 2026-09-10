@@ -83,9 +83,11 @@ export function importWorld(
             category,
             image_type,
             image_path,
-            units_per_crate
+            units_per_crate,
+            base_supply_price,
+            base_demand_price
           )
-          VALUES (?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
       for (const product of data.products) {
@@ -96,6 +98,8 @@ export function importWorld(
           product.image?.type ?? null,
           product.image?.path ?? null,
           product.unitsPerCrate,
+          product.baseSupplyPrice ?? null,
+          product.baseDemandPrice ?? null,
         );
       }
 

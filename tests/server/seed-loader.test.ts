@@ -109,4 +109,13 @@ describe("Demo World Import", () => {
       initial_quantity: 20,
     });
   });
+
+  it("applies nullable product base-price columns without requiring legacy values", () => {
+    initializeDatabase();
+    const columns = db.prepare("PRAGMA table_info(products)").all() as Array<{ name: string; notnull: number }>;
+    expect(columns).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: "base_supply_price", notnull: 0 }),
+      expect.objectContaining({ name: "base_demand_price", notnull: 0 }),
+    ]));
+  });
 });

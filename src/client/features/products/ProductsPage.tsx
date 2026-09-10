@@ -303,6 +303,14 @@ export function ProductsPage() {
                   Units / Crate
                 </th>
 
+                <th style={{ textAlign: "right", padding: "8px", borderBottom: "1px solid #ccc" }}>
+                  Supply Default
+                </th>
+
+                <th style={{ textAlign: "right", padding: "8px", borderBottom: "1px solid #ccc" }}>
+                  Demand Default
+                </th>
+
                 <th
                   style={{
                     textAlign: "right",
@@ -385,6 +393,14 @@ export function ProductsPage() {
                       }}
                     >
                       {product.unitsPerCrate}
+                    </td>
+
+                    <td style={{ padding: "8px", textAlign: "right", borderBottom: "1px solid #eee" }}>
+                      {product.baseSupplyPrice ?? "—"}
+                    </td>
+
+                    <td style={{ padding: "8px", textAlign: "right", borderBottom: "1px solid #eee" }}>
+                      {product.baseDemandPrice ?? "—"}
                     </td>
 
                     <td

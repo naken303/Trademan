@@ -17,6 +17,8 @@ interface ProductFormState {
   name: string;
   category: string;
   unitsPerCrate: string;
+  baseSupplyPrice: string;
+  baseDemandPrice: string;
 }
 
 function createInitialState(
@@ -29,6 +31,12 @@ function createInitialState(
     unitsPerCrate: product?.unitsPerCrate
       ? String(product.unitsPerCrate)
       : "20",
+    baseSupplyPrice: product?.baseSupplyPrice !== undefined
+      ? String(product.baseSupplyPrice)
+      : "",
+    baseDemandPrice: product?.baseDemandPrice !== undefined
+      ? String(product.baseDemandPrice)
+      : "",
   };
 }
 
@@ -115,6 +123,12 @@ export function ProductForm({
     const unitsPerCrate = Number(
       form.unitsPerCrate,
     );
+    const baseSupplyPrice = form.baseSupplyPrice === ""
+      ? undefined
+      : Number(form.baseSupplyPrice);
+    const baseDemandPrice = form.baseDemandPrice === ""
+      ? undefined
+      : Number(form.baseDemandPrice);
 
     if (!id) {
       setValidationError(
@@ -140,6 +154,16 @@ export function ProductForm({
       return;
     }
 
+    if (baseSupplyPrice !== undefined && (!Number.isFinite(baseSupplyPrice) || baseSupplyPrice <= 0)) {
+      setValidationError("Base Supply Price must be positive when provided.");
+      return;
+    }
+
+    if (baseDemandPrice !== undefined && (!Number.isFinite(baseDemandPrice) || baseDemandPrice <= 0)) {
+      setValidationError("Base Demand Price must be positive when provided.");
+      return;
+    }
+
     setValidationError(null);
 
     const nextProduct: Product = {
@@ -151,6 +175,9 @@ export function ProductForm({
           }
         : {}),
       unitsPerCrate,
+      ...(baseSupplyPrice !== undefined ? { baseSupplyPrice } : {}),
+      ...(baseDemandPrice !== undefined ? { baseDemandPrice } : {}),
+      ...(product?.image ? { image: product.image } : {}),
     };
 
     await onSubmit(nextProduct, imageFile);
@@ -251,6 +278,34 @@ export function ProductForm({
           }
           disabled={loading}
         />
+      </label>
+
+      <label>
+        <div>Base Supply Price</div>
+        <input
+          type="number"
+          min="0.01"
+          step="any"
+          value={form.baseSupplyPrice}
+          onChange={(event) => updateField("baseSupplyPrice", event.target.value)}
+          disabled={loading}
+          placeholder="Optional"
+        />
+        <small>Default price when this product is added as Supply. Existing markets are not changed.</small>
+      </label>
+
+      <label>
+        <div>Base Demand Price</div>
+        <input
+          type="number"
+          min="0.01"
+          step="any"
+          value={form.baseDemandPrice}
+          onChange={(event) => updateField("baseDemandPrice", event.target.value)}
+          disabled={loading}
+          placeholder="Optional"
+        />
+        <small>Default price when this product is added as Demand. Existing markets are not changed.</small>
       </label>
 
       <label>

@@ -8,5 +8,7 @@ export interface Product {
   name: string;
   category?: string;
   unitsPerCrate: number;
+  baseSupplyPrice?: number;
+  baseDemandPrice?: number;
   image?: ProductImage;
 }

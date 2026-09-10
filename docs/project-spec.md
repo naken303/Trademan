@@ -46,10 +46,12 @@ UI and simulation must not query SQLite directly. Routes must not embed database
 
 Core records:
 
-- **Product**: id, name, optional category, `unitsPerCrate`, optional file image.
+- **Product**: id, name, optional category, `unitsPerCrate`, optional file image, and optional `baseSupplyPrice` / `baseDemandPrice` editor defaults.
 - **Village**: id, name, map position, optional visual metadata, initial reserve money, and reset timer.
 - **Route**: id, `from`, `to`, travel duration.
 - **Market**: id, village id, product id, side (`supply` or `demand`), unit price, initial quantity.
+
+Product base prices only initialize new market-assignment forms. Each Market persists its own required positive `unitPrice`; changing a Product default never updates an existing Market and runtime simulation/optimizer pricing always uses the Market value.
 
 Product IDs are case-sensitive. The sample world uses `MILK`, `EGG`, `VEG`, and `NAIL`.
 
