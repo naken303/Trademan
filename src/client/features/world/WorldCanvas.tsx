@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Background,
@@ -6,12 +6,20 @@ import {
   MarkerType,
   ReactFlow,
   useNodesState,
-  type Edge,
   type Connection,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
 import type { WorldData } from "../../../shared/types";
+import {
+  DirectionalRouteEdge,
+  type DirectionalRouteEdgeType,
+} from "./DirectionalRouteEdge";
+import {
+  formatRouteDuration,
+  resolveRoutePairLayouts,
+  selectRouteHandleSides,
+} from "./route-edge-layout";
 import {
   VillageNode,
   type VillageNodeType,
@@ -50,15 +58,40 @@ function createNodes(world: WorldData, productDropActive: boolean, onProductDrop
   });
 }
 
-function createEdges(world: WorldData): Edge[] {
-  return world.routes.map((route) => ({
+const edgeTypes = {
+  directionalRoute: DirectionalRouteEdge,
+};
+
+function createEdges(world: WorldData, nodes: VillageNodeType[], onRouteEdit: WorldCanvasProps["onRouteEdit"], selectedEdgeId: string | null): DirectionalRouteEdgeType[] {
+  const pairLayouts = resolveRoutePairLayouts(world.routes);
+  const positions = new Map(nodes.map((node) => [node.id, node.position]));
+
+  return world.routes.flatMap((route) => {
+    const sourcePosition = positions.get(route.from);
+    const targetPosition = positions.get(route.to);
+    const pairLayout = pairLayouts.get(route.id);
+    if (!sourcePosition || !targetPosition || !pairLayout) return [];
+    const handles = selectRouteHandleSides(sourcePosition, targetPosition);
+
+    return [{
     id: route.id,
     source: route.from,
     target: route.to,
-    label: `${route.travelTime.days}d ${route.travelTime.hours}h`,
-    type: "default",
-    markerEnd: { type: MarkerType.ArrowClosed },
-  }));
+    selected: route.id === selectedEdgeId,
+    sourceHandle: `source-${handles.sourceSide}`,
+    targetHandle: `target-${handles.targetSide}`,
+    type: "directionalRoute",
+    markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
+    data: {
+      routeId: route.id,
+      from: route.from,
+      to: route.to,
+      durationLabel: formatRouteDuration(route.travelTime.days, route.travelTime.hours),
+      onEdit: onRouteEdit,
+      ...pairLayout,
+    },
+  }];
+  });
 }
 
 export function WorldCanvas({ world, productDropActive, onProductDrop, onRouteConnect, onRouteEdit }: WorldCanvasProps) {
@@ -68,12 +101,13 @@ export function WorldCanvas({ world, productDropActive, onProductDrop, onRouteCo
 
   const [nodes, setNodes, onNodesChange] =
     useNodesState<VillageNodeType>(createNodes(world, productDropActive, onProductDrop));
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
 
   useEffect(() => {
     setNodes(createNodes(world, productDropActive, onProductDrop));
   }, [world, productDropActive, onProductDrop, setNodes]);
 
-  const edges = createEdges(world);
+  const edges = createEdges(world, nodes, onRouteEdit, selectedEdgeId);
 
   const handleNodeDragStop = (
     _event: unknown,
@@ -98,23 +132,27 @@ export function WorldCanvas({ world, productDropActive, onProductDrop, onRouteCo
         background: "var(--color-surface-1)",
       }}
     >
-      <ReactFlow<VillageNodeType, Edge>
+      <ReactFlow<VillageNodeType, DirectionalRouteEdgeType>
         nodes={nodes}
         edges={edges}
         nodeTypes={{
           village: VillageNode,
         }}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onNodeDragStop={handleNodeDragStop}
         onConnect={(connection: Connection) => { if (connection.source && connection.target && connection.source !== connection.target) onRouteConnect(connection.source, connection.target); }}
         isValidConnection={(connection) => Boolean(connection.source && connection.target && connection.source !== connection.target)}
         onEdgeDoubleClick={(_event, edge) => onRouteEdit(edge.id)}
+        onEdgeClick={(_event, edge) => setSelectedEdgeId(edge.id)}
+        onPaneClick={() => setSelectedEdgeId(null)}
         edgesFocusable
         fitView
         fitViewOptions={{
           padding: 0.2,
         }}
         nodesDraggable
+        connectionLineStyle={{ stroke: "var(--color-text-secondary)", strokeWidth: 2, strokeDasharray: "5 5" }}
       >
         <Background />
         <Controls />

@@ -2,21 +2,21 @@
 
 ## Last Updated
 
-- Date: 2026-09-10
-- Commit: This commit (`Improve product palette and market price defaults`)
+- Date: 2026-09-11
+- Commit: This commit (`Improve directional route readability`)
 - Branch: main
 
 ## Current Phase
 
 - Phase: World editor and UI integration
-- Current Task: Product palette browsing and reusable Product market-price defaults
+- Current Task: Deterministic directional route edge layout and rendering
 - Task Status: `completed`
 
 ## Repository Status
 
 - Working Tree: Clean after this commit.
-- Latest Commit: This commit (`Improve product palette and market price defaults`)
-- Notes: Product base prices are optional editor defaults only; persisted Market unit prices remain authoritative for Simulation and Optimizer behavior.
+- Latest Commit: This commit (`Improve directional route readability`)
+- Notes: Route geometry is derived client-side from persisted village positions and explicit routes; no domain, persistence, Simulation, or Optimizer contract changed.
 
 ## Verification
 
@@ -24,7 +24,7 @@
 
 - Command: `npm run build`
 - Status: `PASS`
-- Date: 2026-09-10
+- Date: 2026-09-11
 - Error Summary: None
 - Details: Production build completed without the prior chunk-size warning after page-level lazy loading.
 
@@ -32,8 +32,8 @@
 
 - Command: `npm run test`
 - Status: `PASS`
-- Date: 2026-09-10
-- Tests: 18 test files passed; 76 tests passed.
+- Date: 2026-09-11
+- Tests: 19 test files passed; 82 tests passed.
 - Error Summary: None
 - Details: Vitest completed successfully.
 
@@ -41,7 +41,7 @@
 
 - Command: `npm run lint`
 - Status: `PASS`
-- Date: 2026-09-10
+- Date: 2026-09-11
 - Error Summary: None
 - Details: ESLint completed successfully.
 
@@ -49,15 +49,15 @@
 
 - Command: `npm run e2e`
 - Status: `PASS`
-- Date: 2026-09-10
-- Details: 7 Playwright tests passed using isolated temporary SQLite and backup paths.
+- Date: 2026-09-11
+- Details: 8 Playwright tests passed using isolated temporary SQLite and backup paths.
 
 ## Changes In Last Task
 
-- Files changed: Product shared contract/schema, additive migration and persistence, demo seed, Product CRUD UI, World Product Palette/dialog, focused tests/E2E, project specification, and this status note.
-- What changed: Added optional `baseSupplyPrice` / `baseDemandPrice`, a responsive three-column Images/Details palette with local mode preference, and side-specific market form initialization.
-- Why: Speed product browsing and market configuration without coupling runtime prices to Product metadata.
-- Behavior affected: Existing Market prices take precedence over Product defaults; missing side defaults leave price empty, and changing a Product default does not mutate existing Markets.
+- Files changed: World canvas, Village node handles, custom directional edge/layout modules, World CSS/copy, focused geometry tests, World E2E, and this status note.
+- What changed: Added deterministic smart-side attachment, separated reverse-pair curves and labels, arrowed custom edges, wider hit areas, selected/hover styling, and four-side connection handles.
+- Why: Keep explicit directional routes readable around user-positioned villages without moving nodes or changing route semantics.
+- Behavior affected: Route creation/editing and village drag persistence remain unchanged; explicit reverse routes now render as distinct stable paths and duration pills.
 
 ## Known Issues
 
@@ -68,10 +68,10 @@
    - Recommended action: Continue to verify after each scoped change.
 
 2. Low
-   - Location: `src/client/features/world/world-history.ts`
-   - Problem: Undo/redo covers unsaved village positions only; persisted route and market mutations are not reversible from the World toolbar.
-   - Impact: Users must edit a route/market again or use its management page; the canvas never presents UI-only state that disagrees with SQLite.
-   - Recommended action: Add persisted entity command history only as a separate transactional feature if required.
+   - Location: `src/client/features/world/route-edge-layout.ts`
+   - Problem: Edge routing intentionally uses local smart handles and reverse-pair curves rather than global crossing or label-collision optimization.
+   - Impact: Very dense worlds can still have intersections between unrelated routes, although direction pairs and their labels remain separated.
+   - Recommended action: Reposition villages manually; consider a bounded fan-out enhancement only if dense-world usage proves it necessary.
 
 ## Completed Milestones
 
@@ -98,10 +98,12 @@
 - A centralized dark-blue token system, desktop sidebar, accessible mobile drawer, consistent controls/data surfaces, and responsive layouts cover all implemented pages.
 - World Editor supports directional route connection/edit dialogs and product-palette drag/drop market creation/editing with immediate persisted refresh.
 - Products support optional Supply/Demand price defaults through schema, SQLite migration `004_product_base_prices.sql`, CRUD, import/export, seed, and UI; the Product Palette supports searchable draggable Images/Details grids.
+- World routes use a custom flow-coordinate edge with deterministic pairing, smart top/right/bottom/left attachments, reverse-pair curve separation, compact duration labels, arrowheads, and stable selected geometry.
 
 ## Remaining Work
 
-1. Final UI/UX integration review and release verification.
+1. Final UI/UX integration review.
+2. Final release verification.
 
 ## Important Notes For ChatGPT
 
@@ -136,14 +138,17 @@
 - Product palette mode is stored only in `localStorage` under `village-trade-product-palette-mode`; invalid values fall back to Images mode, and both modes use the same product-ID drag payload.
 - Product base-price precedence in Market Assignment is persisted same-side Market price, then matching Product base price, then an empty required price field; Supply and Demand drafts remain independent while the dialog is open.
 - Migration `004_product_base_prices.sql` adds nullable `base_supply_price` and `base_demand_price` columns without rebuilding or reseeding existing databases.
+- Route edge layout canonicalizes unordered village pairs and is independent of route array order; curve/label geometry is never persisted.
+- Village nodes expose subtle fanned source/target handles on four sides; attachment sides recompute from current node positions while dragging, and persistence still occurs only through the existing position workflow.
+- Manual World QA covered single and paired horizontal, vertical, and diagonal routes, 8-route multi-connection density, normal/minimum zoom, readable arrows/labels, and the unchanged Product Palette at desktop width.
 - Responsive browser inspection covered all main pages at 1440 px, plus representative layouts at 1024, 768, and 390 px with no page-level horizontal overflow.
 - Do not re-import the demo world during server startup; SQLite runtime state must survive restart.
 - Shared types and Zod schemas are the contract between client, server, simulation, and persistence.
 - The optimizer's primary objective is accumulated profit; continuous selling is only a tie-break preference.
-- Latest verification: build without chunk warnings, 76 Vitest tests, lint, and 7 Playwright E2E tests passed.
+- Latest verification: build without chunk warnings, 82 Vitest tests, lint, and 8 Playwright E2E tests passed.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-10 | This commit | PASS | PASS | PASS | PASS | 18 Vitest files/76 tests and 7 Playwright tests passed; Product defaults, palette modes/drag, responsive grid, persistence, Simulation, and Optimizer passed. |
+| 2026-09-11 | This commit | PASS | PASS | PASS | PASS | 19 Vitest files/82 tests and 8 Playwright tests passed; deterministic route geometry, reverse-pair edit/drag/reload, Product Palette, Simulation, and Optimizer passed. |

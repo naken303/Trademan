@@ -102,7 +102,7 @@ test("World canvas creates and edits a directional route", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Create Route" })).toBeVisible();
   await page.getByLabel("Route hours").fill("6");
   await page.getByRole("button", { name: "Create Route" }).click();
-  await expect(page.getByText("0d 6h")).toBeVisible();
+  await expect(page.getByText("6h", { exact: true })).toBeVisible();
 
   await page.getByTestId("route-source-C").dragTo(page.getByTestId("route-target-D"));
   await expect(page.getByRole("heading", { name: "Edit Route" })).toBeVisible();
@@ -110,6 +110,58 @@ test("World canvas creates and edits a directional route", async ({ page }) => {
   await page.getByRole("button", { name: "Menu" }).isVisible().then(async (mobile) => { if (mobile) { await page.getByRole("button", { name: "Menu" }).click(); } });
   await page.getByRole("link", { name: "Routes", exact: true }).click();
   await expect(page.locator("tr").filter({ hasText: "Village C" }).filter({ hasText: "Village D" }).filter({ hasText: "0d 6h" })).toBeVisible();
+});
+
+test("World canvas separates reverse routes and keeps geometry stable after a saved drag", async ({ page }) => {
+  await page.goto("/world");
+  const source = await page.getByTestId("route-source-left-B").boundingBox();
+  const target = await page.getByTestId("route-target-right-A").boundingBox();
+  expect(source).not.toBeNull(); expect(target).not.toBeNull();
+  await page.mouse.move(source!.x + source!.width / 2, source!.y + source!.height / 2);
+  await page.mouse.down(); await page.mouse.move(target!.x + target!.width / 2, target!.y + target!.height / 2, { steps: 8 }); await page.mouse.up();
+  await expect(page.getByRole("heading", { name: "Create Route" })).toBeVisible();
+  await page.getByLabel("Route hours").fill("7");
+  await page.getByRole("button", { name: "Create Route" }).click();
+
+  const forward = page.locator('[data-route-from="A"][data-route-to="B"]');
+  const reverse = page.locator('[data-route-from="B"][data-route-to="A"]');
+  await expect(forward).toHaveAttribute("data-reverse-pair", "true");
+  await expect(reverse).toHaveAttribute("data-reverse-pair", "true");
+  await expect(forward).toHaveAttribute("data-curve-side", "1");
+  await expect(reverse).toHaveAttribute("data-curve-side", "-1");
+  await expect(forward.locator(".directional-route-path")).toHaveAttribute("marker-end", /.+/);
+  await expect(reverse.locator(".directional-route-path")).toHaveAttribute("marker-end", /.+/);
+  const forwardPath = await forward.locator(".directional-route-path").getAttribute("d");
+  const reversePath = await reverse.locator(".directional-route-path").getAttribute("d");
+  const forwardId = await forward.getAttribute("data-route-id");
+  const reverseId = await reverse.getAttribute("data-route-id");
+  expect(forwardId).not.toBeNull(); expect(reverseId).not.toBeNull();
+  expect(forwardPath).not.toBe(reversePath);
+  await expect(page.getByTestId(`route-label-${forwardId}`)).toHaveText("4h");
+  await expect(page.getByTestId(`route-label-${reverseId}`)).toHaveText("7h");
+  await forward.locator(".directional-route-path").click({ force: true });
+  await expect(forward).toHaveClass(/selected/);
+  expect(await forward.locator(".directional-route-path").getAttribute("d")).toBe(forwardPath);
+
+  await page.getByTestId(`route-label-${reverseId}`).dblclick();
+  await expect(page.getByRole("heading", { name: "Edit Route" })).toBeVisible();
+  await page.getByLabel("Route hours").fill("8");
+  await page.getByRole("button", { name: "Save Changes" }).click();
+  await expect(page.getByTestId(`route-label-${forwardId}`)).toHaveText("4h");
+  await expect(page.getByTestId(`route-label-${reverseId}`)).toHaveText("8h");
+
+  const village = page.locator('.react-flow__node[data-id="B"]');
+  const villageBox = await village.boundingBox();
+  expect(villageBox).not.toBeNull();
+  const pathBeforeDrag = await forward.locator(".directional-route-path").getAttribute("d");
+  await page.mouse.move(villageBox!.x + villageBox!.width / 2, villageBox!.y + 30);
+  await page.mouse.down(); await page.mouse.move(villageBox!.x + villageBox!.width / 2 + 70, villageBox!.y + 90, { steps: 10 }); await page.mouse.up();
+  const pathAfterDrag = await forward.locator(".directional-route-path").getAttribute("d");
+  expect(pathAfterDrag).not.toBe(pathBeforeDrag);
+  await page.getByRole("button", { name: "Save positions" }).click();
+  await page.reload();
+  await expect(page.locator('[data-route-from="A"][data-route-to="B"]')).toHaveAttribute("data-curve-side", "1");
+  expect(await page.locator('[data-route-from="A"][data-route-to="B"] .directional-route-path').getAttribute("d")).toBe(pathAfterDrag);
 });
 
 test("World product palette modes preserve drag defaults and persisted market prices", async ({ page }) => {

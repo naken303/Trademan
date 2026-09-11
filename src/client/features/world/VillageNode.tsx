@@ -1,4 +1,5 @@
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
+import type { CSSProperties } from "react";
 
 import type { Market, Product, Village } from "../../../shared/types";
 
@@ -11,6 +12,18 @@ export type VillageNodeData = Record<string, unknown> & {
 };
 
 export type VillageNodeType = Node<VillageNodeData, "village">;
+
+const handlePositions = [
+  ["top", Position.Top],
+  ["right", Position.Right],
+  ["bottom", Position.Bottom],
+  ["left", Position.Left],
+] as const;
+
+function getHandleFanOutStyle(side: string, type: "source" | "target"): CSSProperties {
+  const offset = type === "source" ? "58%" : "42%";
+  return side === "top" || side === "bottom" ? { left: offset } : { top: offset };
+}
 
 function formatDuration(days: number, hours: number): string {
   const parts: string[] = [];
@@ -71,8 +84,30 @@ export function VillageNode({
         boxShadow: "var(--shadow-panel)",
       }}
     >
-      <Handle type="target" position={Position.Left} data-testid={`route-target-${village.id}`} title={`Connect route to ${village.name}`} />
-      <Handle type="source" position={Position.Right} data-testid={`route-source-${village.id}`} title={`Start route from ${village.name}`} />
+      {handlePositions.map(([side, position]) => (
+        <Handle
+          key={`target-${side}`}
+          id={`target-${side}`}
+          type="target"
+          position={position}
+          className="route-handle route-handle-target"
+          style={getHandleFanOutStyle(side, "target")}
+          data-testid={side === "left" ? `route-target-${village.id}` : `route-target-${side}-${village.id}`}
+          title={`Connect route to ${village.name} from the ${side}`}
+        />
+      ))}
+      {handlePositions.map(([side, position]) => (
+        <Handle
+          key={`source-${side}`}
+          id={`source-${side}`}
+          type="source"
+          position={position}
+          className="route-handle route-handle-source"
+          style={getHandleFanOutStyle(side, "source")}
+          data-testid={side === "right" ? `route-source-${village.id}` : `route-source-${side}-${village.id}`}
+          title={`Start route from ${village.name} on the ${side}`}
+        />
+      ))}
 
       <div
         style={{
