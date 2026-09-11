@@ -3,7 +3,7 @@ import type { SimulationMarket } from "./simulation-controller";
 import { useSimulationStore } from "./simulation-store";
 import "./SimulatorPage.css";
 
-const durationLabel = (days: number, hours: number) => `${days}d ${hours}h`;
+import { formatDuration } from "../../utils/format";
 const productImage = (path: string) => `/${path.replaceAll("\\", "/")}`;
 
 interface TradeRowProps {
@@ -79,7 +79,7 @@ export function SimulatorPage() {
             {snapshot.destinations.length === 0 ? <p>No reachable destinations.</p> :
               <div className="simulation-destinations">{snapshot.destinations.map(({ village, travelTime }) =>
                 <button key={village.id} type="button" onClick={() => travel(village.id)}>
-                  <strong>{village.name}</strong><span>{durationLabel(travelTime.days, travelTime.hours)}</span></button>)}</div>}
+                  <strong>{village.name}</strong><span>{formatDuration(travelTime.days, travelTime.hours)}</span></button>)}</div>}
           </section>
           <section className="simulation-card"><h3>Inventory</h3>
             {snapshot.state.player.inventory.length === 0 ? <p>Inventory is empty.</p> :
@@ -98,7 +98,7 @@ export function SimulatorPage() {
         <div className="simulation-column">
           <section className="simulation-card simulation-village-card">
             <div><h3>{snapshot.currentVillage.name}</h3><p>Village reserve: <strong>{snapshot.currentVillageMoney.toLocaleString()} {snapshot.currency}</strong></p></div>
-            <div><span>Next reset in</span><strong>{durationLabel(snapshot.currentVillageReset.days, snapshot.currentVillageReset.hours)}</strong></div>
+            <div><span>Next reset in</span><strong>{formatDuration(snapshot.currentVillageReset.days, snapshot.currentVillageReset.hours)}</strong></div>
           </section>
           <section className="simulation-card"><h3 className="supply-heading">Supply · Buy</h3>
             {supplies.length === 0 ? <p>No products for sale here.</p> : supplies.map((item) => tradeRow(item, buy))}</section>

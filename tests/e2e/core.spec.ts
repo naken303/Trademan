@@ -67,7 +67,7 @@ test("simulation UI completes buy, travel, and partial sell", async ({ page }) =
   await page.getByRole("button", { name: /Village B/ }).click();
   await page.getByRole("button", { name: /Village D/ }).click();
   await expect(page.getByText("Day 1, 9:00", { exact: true })).toBeVisible();
-  await expect(page.getByText("0d 3h", { exact: true })).toBeVisible();
+  await expect(page.getByText("3h", { exact: true })).toBeVisible();
 
   const vegetableDemand = page.locator(".simulation-trade-row").filter({ hasText: "Vegetable" });
   await vegetableDemand.getByLabel("Quantity").fill("5");
@@ -109,7 +109,7 @@ test("World canvas creates and edits a directional route", async ({ page }) => {
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByRole("button", { name: "Menu" }).isVisible().then(async (mobile) => { if (mobile) { await page.getByRole("button", { name: "Menu" }).click(); } });
   await page.getByRole("link", { name: "Routes", exact: true }).click();
-  await expect(page.locator("tr").filter({ hasText: "Village C" }).filter({ hasText: "Village D" }).filter({ hasText: "0d 6h" })).toBeVisible();
+  await expect(page.locator("tr").filter({ hasText: "Village C" }).filter({ hasText: "Village D" }).filter({ hasText: "6h" })).toBeVisible();
 });
 
 test("World canvas separates reverse routes and keeps geometry stable after a saved drag", async ({ page }) => {

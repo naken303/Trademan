@@ -3,20 +3,20 @@
 ## Last Updated
 
 - Date: 2026-09-11
-- Commit: This commit (`Improve directional route readability`)
+- Commit: This commit (`Complete final UI UX integration review`)
 - Branch: main
 
 ## Current Phase
 
-- Phase: World editor and UI integration
-- Current Task: Deterministic directional route edge layout and rendering
+- Phase: Release preparation
+- Current Task: Final UI/UX integration review
 - Task Status: `completed`
 
 ## Repository Status
 
 - Working Tree: Clean after this commit.
-- Latest Commit: This commit (`Improve directional route readability`)
-- Notes: Route geometry is derived client-side from persisted village positions and explicit routes; no domain, persistence, Simulation, or Optimizer contract changed.
+- Latest Commit: This commit (`Complete final UI UX integration review`)
+- Notes: Management-page presentation, responsive data layouts, currency/duration formatting, and concise empty/loading/error states were aligned without changing domain, persistence, Simulation, or Optimizer contracts.
 
 ## Verification
 
@@ -35,7 +35,7 @@
 - Date: 2026-09-11
 - Tests: 19 test files passed; 82 tests passed.
 - Error Summary: None
-- Details: Vitest completed successfully.
+- Details: 19 Vitest files and 82 tests completed successfully.
 
 ### Lint
 
@@ -54,10 +54,10 @@
 
 ## Changes In Last Task
 
-- Files changed: World canvas, Village node handles, custom directional edge/layout modules, World CSS/copy, focused geometry tests, World E2E, and this status note.
-- What changed: Added deterministic smart-side attachment, separated reverse-pair curves and labels, arrowed custom edges, wider hit areas, selected/hover styling, and four-side connection handles.
-- Why: Keep explicit directional routes readable around user-positioned villages without moving nodes or changing route semantics.
-- Behavior affected: Route creation/editing and village drag persistence remain unchanged; explicit reverse routes now render as distinct stable paths and duration pills.
+- Files changed: Product, Village, Market, Route, Simulation, and Optimizer presentation; shared client formatting helper; E2E expectations; release checklist; and this status note.
+- What changed: Aligned Product Management with the existing page/panel/form hierarchy, added responsive Product/Village/Market data layouts, displayed persisted currency on management prices, standardized compact day/hour durations, improved actionable empty/loading/error copy, and refreshed release smoke coverage.
+- Why: Resolve verified hierarchy, readability, horizontal-overflow, currency, duration, and feedback inconsistencies found during the final cross-page review.
+- Behavior affected: Presentation and responsive layout only; CRUD, World Editor, Simulation, Optimizer, and persistence behavior are unchanged.
 
 ## Known Issues
 
@@ -102,8 +102,7 @@
 
 ## Remaining Work
 
-1. Final UI/UX integration review.
-2. Final release verification.
+1. Final release verification.
 
 ## Important Notes For ChatGPT
 
@@ -140,15 +139,15 @@
 - Migration `004_product_base_prices.sql` adds nullable `base_supply_price` and `base_demand_price` columns without rebuilding or reseeding existing databases.
 - Route edge layout canonicalizes unordered village pairs and is independent of route array order; curve/label geometry is never persisted.
 - Village nodes expose subtle fanned source/target handles on four sides; attachment sides recompute from current node positions while dragging, and persistence still occurs only through the existing position workflow.
-- Manual World QA covered single and paired horizontal, vertical, and diagonal routes, 8-route multi-connection density, normal/minimum zoom, readable arrows/labels, and the unchanged Product Palette at desktop width.
-- Responsive browser inspection covered all main pages at 1440 px, plus representative layouts at 1024, 768, and 390 px with no page-level horizontal overflow.
+- Manual browser review covered World, Products, Villages, Routes, Markets, Simulation, Optimizer, and Database & Settings at 1440, 1024, 768, and 390 px; navigation, hierarchy, panels, controls, data readability, World canvas/palette integration, and page-level overflow were inspected.
+- The World canvas remains an intentionally pannable workspace at narrow widths; management data switches to compact labeled rows where needed instead of forcing page-level horizontal scrolling.
 - Do not re-import the demo world during server startup; SQLite runtime state must survive restart.
 - Shared types and Zod schemas are the contract between client, server, simulation, and persistence.
 - The optimizer's primary objective is accumulated profit; continuous selling is only a tie-break preference.
-- Latest verification: build without chunk warnings, 82 Vitest tests, lint, and 8 Playwright E2E tests passed.
+- Latest verification: build without chunk warnings, 19 Vitest files/82 tests, lint, and 8 Playwright E2E tests passed after the UI integration changes.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-11 | This commit | PASS | PASS | PASS | PASS | 19 Vitest files/82 tests and 8 Playwright tests passed; deterministic route geometry, reverse-pair edit/drag/reload, Product Palette, Simulation, and Optimizer passed. |
+| 2026-09-11 | This commit | PASS | PASS | PASS | PASS | 19 Vitest files/82 tests and 8 Playwright tests passed; all main pages were manually reviewed at 1440, 1024, 768, and 390 px. |

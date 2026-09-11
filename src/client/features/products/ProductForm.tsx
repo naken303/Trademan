@@ -185,17 +185,9 @@ export function ProductForm({
 
   return (
     <form
+      className="product-form"
       onSubmit={(event) => {
         void handleSubmit(event);
-      }}
-      style={{
-        display: "grid",
-        gap: "12px",
-        maxWidth: "500px",
-        padding: "16px",
-        border: "1px solid #ccc",
-        borderRadius: "8px",
-        marginBottom: "20px",
       }}
     >
       <h2 style={{ margin: 0 }}>
@@ -203,13 +195,7 @@ export function ProductForm({
       </h2>
 
       {validationError && (
-        <div
-          style={{
-            padding: "8px",
-            border: "1px solid #cc0000",
-            borderRadius: "4px",
-          }}
-        >
+        <div className="product-form-error" role="alert">
           {validationError}
         </div>
       )}
@@ -354,12 +340,7 @@ export function ProductForm({
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          gap: "8px",
-        }}
-      >
+      <div className="product-form-actions">
         <button
           type="submit"
           disabled={loading}
@@ -367,8 +348,8 @@ export function ProductForm({
           {loading
             ? "Saving..."
             : isEditing
-              ? "Update"
-              : "Create"}
+              ? "Save changes"
+              : "Add Product"}
         </button>
 
         <button

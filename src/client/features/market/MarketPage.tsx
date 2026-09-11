@@ -17,6 +17,7 @@ import {
 import { MarketForm } from "./MarketForm";
 
 import "./MarketPage.css";
+import { formatMoney } from "../../utils/format";
 
 export function MarketPage() {
   const [villages, setVillages] = useState<Village[]>(
@@ -43,6 +44,7 @@ export function MarketPage() {
     useState("all");
 
   const [error, setError] = useState("");
+  const [currency, setCurrency] = useState("");
 
   const villageMap = useMemo(
     () =>
@@ -91,6 +93,7 @@ export function MarketPage() {
       setVillages(world.villages);
       setProducts(world.products);
       setMarkets(world.markets);
+      setCurrency(world.settings.currency);
     } catch (loadError) {
       setError(
         loadError instanceof Error
@@ -296,12 +299,12 @@ export function MarketPage() {
 
                 return (
                   <tr key={market.id}>
-                    <td>
+                    <td data-label="Village">
                       {village?.name ??
                         market.villageId}
                     </td>
 
-                    <td>
+                    <td data-label="Product">
                       <div className="market-product-cell">
                         {product?.image?.path && (
                           <img
@@ -319,7 +322,7 @@ export function MarketPage() {
                       </div>
                     </td>
 
-                    <td>
+                    <td data-label="Side">
                       <span
                         className={`market-side market-side-${market.side}`}
                       >
@@ -330,15 +333,15 @@ export function MarketPage() {
                       </span>
                     </td>
 
-                    <td>
-                      {market.unitPrice}
+                    <td data-label="Unit price">
+                      {currency ? formatMoney(market.unitPrice, currency) : market.unitPrice.toLocaleString()}
                     </td>
 
-                    <td>
+                    <td data-label="Initial quantity">
                       {market.initialQuantity}
                     </td>
 
-                    <td>
+                    <td data-label="Actions">
                       <div className="market-actions">
                         <button
                           type="button"
@@ -371,7 +374,7 @@ export function MarketPage() {
                     colSpan={6}
                     className="market-empty"
                   >
-                    No markets found.
+                    No markets found. Add Supply or Demand to connect a product with a village.
                   </td>
                 </tr>
               )}

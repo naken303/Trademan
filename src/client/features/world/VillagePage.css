@@ -35,6 +35,7 @@
 }
 
 .village-panel {
+  min-width: 0;
   padding: 18px;
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -153,4 +154,12 @@
   .village-duration-fields {
     grid-template-columns: 1fr;
   }
+
+  .village-table thead { display: none; }
+  .village-table, .village-table tbody, .village-table tr, .village-table td { display: block; width: 100%; }
+  .village-table tr { display: grid; gap: 8px; padding: 14px 0; border-bottom: 1px solid var(--color-border); }
+  .village-table td { display: grid; grid-template-columns: 110px 1fr; gap: 10px; padding: 0; border: 0 !important; }
+  .village-table td::before { content: attr(data-label); color: var(--color-text-muted); font-size: .72rem; font-weight: 700; letter-spacing: .035em; text-transform: uppercase; }
+  .village-table td:first-child strong, .village-table td:first-child small { grid-column: 2; }
+  .village-table td:last-child { align-items: center; }
 }

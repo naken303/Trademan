@@ -19,6 +19,7 @@ import {
 } from "./VillageForm";
 
 import "./VillagePage.css";
+import { formatDuration, formatMoney } from "../../utils/format";
 
 export function VillagePage() {
   const [
@@ -35,6 +36,7 @@ export function VillagePage() {
     error,
     setError,
   ] = useState("");
+  const [currency, setCurrency] = useState("");
 
   const [
     showForm,
@@ -59,6 +61,7 @@ export function VillagePage() {
       setVillages(
         world.villages,
       );
+      setCurrency(world.settings.currency);
     } catch (loadError) {
       setError(
         loadError instanceof Error
@@ -223,7 +226,7 @@ export function VillagePage() {
               {villages.map(
                 (village) => (
                   <tr key={village.id}>
-                    <td>
+                    <td data-label="Village">
                       <strong>
                         {village.name}
                       </strong>
@@ -233,33 +236,19 @@ export function VillagePage() {
                       </small>
                     </td>
 
-                    <td>
-                      {
-                        village.initialReserveMoney
-                      }
+                    <td data-label="Reserve money">
+                      {currency ? formatMoney(village.initialReserveMoney, currency) : village.initialReserveMoney.toLocaleString()}
                     </td>
 
-                    <td>
-                      {village.reset.current.days}
-                      d{" "}
-                      {village.reset.current.hours}
-                      h
+                    <td data-label="Current reset">
+                      {formatDuration(village.reset.current.days, village.reset.current.hours)}
                     </td>
 
-                    <td>
-                      {
-                        village.reset
-                          .afterReset.days
-                      }
-                      d{" "}
-                      {
-                        village.reset
-                          .afterReset.hours
-                      }
-                      h
+                    <td data-label="After reset">
+                      {formatDuration(village.reset.afterReset.days, village.reset.afterReset.hours)}
                     </td>
 
-                    <td>
+                    <td data-label="Position">
                       {Math.round(
                         village.position.x,
                       )}
@@ -269,7 +258,7 @@ export function VillagePage() {
                       )}
                     </td>
 
-                    <td>
+                    <td data-label="Actions">
                       <div className="village-actions">
                         <button
                           type="button"
@@ -304,7 +293,7 @@ export function VillagePage() {
                     colSpan={6}
                     className="village-empty"
                   >
-                    No villages found.
+                    No villages yet. Add a village to begin building the world.
                   </td>
                 </tr>
               )}

@@ -7,6 +7,9 @@ import {
 } from "./product-api";
 import { ProductForm } from "./ProductForm";
 import { useProductStore } from "./product-store";
+import { getWorld } from "../world/world-api";
+import { formatMoney } from "../../utils/format";
+import "./ProductsPage.css";
 
 function getProductImageUrl(
   product: Product,
@@ -59,9 +62,13 @@ export function ProductsPage() {
 
   const [pageError, setPageError] =
     useState<string | null>(null);
+  const [currency, setCurrency] = useState("");
 
   useEffect(() => {
     void loadProducts();
+    void getWorld()
+      .then((world) => setCurrency(world.settings.currency))
+      .catch(() => setCurrency(""));
   }, [loadProducts]);
 
   function handleAdd() {
@@ -178,24 +185,11 @@ export function ProductsPage() {
     loading || imageActionLoading;
 
   return (
-    <div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: "16px",
-        }}
-      >
+    <div className="products-page">
+      <header className="products-heading">
         <div>
-          <h1 style={{ marginBottom: "4px" }}>
-            Products
-          </h1>
-
-          <div>
-            Total products:{" "}
-            <strong>{products.length}</strong>
-          </div>
+          <h1>Product Management</h1>
+          <p>Manage products, crate sizes, images, and default market prices.</p>
         </div>
 
         <button
@@ -203,49 +197,34 @@ export function ProductsPage() {
           onClick={handleAdd}
           disabled={busy}
         >
-          Add Product
+          + Add Product
         </button>
-      </div>
+      </header>
 
       {(error || pageError) && (
-        <div
-          style={{
-            marginBottom: "16px",
-            padding: "10px",
-            border: "1px solid #cc0000",
-            borderRadius: "6px",
-          }}
-        >
+        <div className="products-error" role="alert">
           {pageError ?? error}
         </div>
       )}
 
       {showForm && (
-          <ProductForm
+        <section className="products-panel products-form-panel"><ProductForm
             key={editingProduct?.id ?? "new"}
             product={editingProduct}
           loading={busy}
           onSubmit={handleSubmit}
           onCancel={handleCancel}
-        />
+        /></section>
       )}
 
       {loading && products.length === 0 ? (
-        <div>Loading products...</div>
+        <div className="products-panel page-state">Loading products...</div>
       ) : products.length === 0 ? (
-        <div>No products found.</div>
+        <div className="products-panel products-empty">No products yet. Add a product to define trade goods and crate capacity.</div>
       ) : (
-        <div
-          style={{
-            overflowX: "auto",
-          }}
-        >
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-            }}
-          >
+        <section className="products-panel">
+          <div className="products-table-heading"><h2>Products</h2><span>{products.length} products</span></div>
+          <div className="products-table-wrapper"><table className="products-table">
             <thead>
               <tr>
                 <th
@@ -331,13 +310,7 @@ export function ProductsPage() {
 
                 return (
                   <tr key={product.id}>
-                    <td
-                      style={{
-                        padding: "8px",
-                        borderBottom:
-                          "1px solid #eee",
-                      }}
-                    >
+                    <td data-label="Image">
                       {imageUrl ? (
                         <img
                           src={imageUrl}
@@ -354,72 +327,37 @@ export function ProductsPage() {
                       )}
                     </td>
 
-                    <td
-                      style={{
-                        padding: "8px",
-                        borderBottom:
-                          "1px solid #eee",
-                      }}
-                    >
+                    <td data-label="ID">
                       {product.id}
                     </td>
 
-                    <td
-                      style={{
-                        padding: "8px",
-                        borderBottom:
-                          "1px solid #eee",
-                      }}
-                    >
+                    <td data-label="Name">
                       {product.name}
                     </td>
 
-                    <td
-                      style={{
-                        padding: "8px",
-                        borderBottom:
-                          "1px solid #eee",
-                      }}
-                    >
+                    <td data-label="Category">
                       {product.category ?? "-"}
                     </td>
 
-                    <td
-                      style={{
-                        padding: "8px",
-                        textAlign: "right",
-                        borderBottom:
-                          "1px solid #eee",
-                      }}
-                    >
+                    <td data-label="Units / crate" className="numeric">
                       {product.unitsPerCrate}
                     </td>
 
-                    <td style={{ padding: "8px", textAlign: "right", borderBottom: "1px solid #eee" }}>
-                      {product.baseSupplyPrice ?? "—"}
+                    <td data-label="Supply default" className="numeric">
+                      {product.baseSupplyPrice === undefined ? "—" : currency ? formatMoney(product.baseSupplyPrice, currency) : product.baseSupplyPrice.toLocaleString()}
                     </td>
 
-                    <td style={{ padding: "8px", textAlign: "right", borderBottom: "1px solid #eee" }}>
-                      {product.baseDemandPrice ?? "—"}
+                    <td data-label="Demand default" className="numeric">
+                      {product.baseDemandPrice === undefined ? "—" : currency ? formatMoney(product.baseDemandPrice, currency) : product.baseDemandPrice.toLocaleString()}
                     </td>
 
-                    <td
-                      style={{
-                        padding: "8px",
-                        textAlign: "right",
-                        borderBottom:
-                          "1px solid #eee",
-                      }}
-                    >
+                    <td data-label="Actions" className="product-actions">
                       <button
                         type="button"
                         onClick={() =>
                           handleEdit(product)
                         }
                         disabled={busy}
-                        style={{
-                          marginRight: "8px",
-                        }}
                       >
                         Edit
                       </button>
@@ -433,9 +371,6 @@ export function ProductsPage() {
                             )
                           }
                           disabled={busy}
-                          style={{
-                            marginRight: "8px",
-                          }}
                         >
                           Remove Image
                         </button>
@@ -455,8 +390,8 @@ export function ProductsPage() {
                 );
               })}
             </tbody>
-          </table>
-        </div>
+          </table></div>
+        </section>
       )}
     </div>
   );

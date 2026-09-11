@@ -6,11 +6,12 @@ import type { WorldData } from "../../../shared/types";
 import { getWorld } from "../world/world-api";
 import { runOptimizer } from "./optimizer-api";
 import "./OptimizerPage.css";
+import { formatDuration } from "../../utils/format";
 
 const limits = { periodDays: 365, beamWidth: 2_000, maxSteps: 500, maxExpandedStates: 500_000 } as const;
 type FormValues = Record<keyof typeof limits, string>;
 const timeLabel = (time: { day: number; hour: number }) => `Day ${time.day}, ${time.hour}:00`;
-const durationLabel = (duration?: { days: number; hours: number }) => duration ? `${duration.days}d ${duration.hours}h` : "Unknown duration";
+const durationLabel = (duration?: { days: number; hours: number }) => duration ? formatDuration(duration.days, duration.hours) : "Unknown duration";
 
 function initialForm(world: WorldData): FormValues {
   return {
