@@ -65,7 +65,7 @@ export function RoutePage() {
     {error && <div className="route-error" role="alert">{error}</div>}
     {showForm && <section className="route-panel"><RouteForm key={editing?.id ?? "new"} villages={villages} route={editing} onSubmit={handleSubmit} onCancel={() => { setEditing(null); setShowForm(false); }} /></section>}
     <section className="route-panel"><table><thead><tr><th>From</th><th>To</th><th>Travel time</th><th>Actions</th></tr></thead>
-      <tbody>{routes.map((route) => <tr key={route.id}><td>{villageNames.get(route.from) ?? route.from}</td><td>{villageNames.get(route.to) ?? route.to}</td><td>{formatDuration(route.travelTime.days, route.travelTime.hours)}</td><td className="route-actions"><button type="button" onClick={() => { setEditing(route); setShowForm(true); }}>Edit</button><button type="button" onClick={() => void handleDelete(route)}>Delete</button></td></tr>)}
+      <tbody>{routes.map((route) => <tr key={route.id}><td data-label="From">{villageNames.get(route.from) ?? route.from}</td><td data-label="To">{villageNames.get(route.to) ?? route.to}</td><td data-label="Travel time">{formatDuration(route.travelTime.days, route.travelTime.hours)}</td><td data-label="Actions" className="route-actions"><button type="button" onClick={() => { setEditing(route); setShowForm(true); }}>Edit</button><button type="button" onClick={() => void handleDelete(route)}>Delete</button></td></tr>)}
       {routes.length === 0 && <tr><td colSpan={4}>No routes yet. Add a route to connect two villages.</td></tr>}</tbody></table></section>
   </div>;
 }

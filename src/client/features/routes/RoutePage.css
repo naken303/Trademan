@@ -1,7 +1,7 @@
 .route-page { display: grid; gap: 1rem; }
 .route-page > header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .route-page h1, .route-page p { margin: 0; }
-.route-panel { padding: 1rem; border: 1px solid #d8dee9; border-radius: 0.75rem; background: #fff; }
+.route-panel { min-width: 0; padding: 1rem; border: 1px solid #d8dee9; border-radius: 0.75rem; background: #fff; }
 .route-panel table { width: 100%; border-collapse: collapse; }
 .route-panel th, .route-panel td { padding: 0.75rem; border-bottom: 1px solid #e5e9f0; text-align: left; }
 .route-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
@@ -9,3 +9,13 @@
 .route-form select, .route-form input { padding: 0.6rem; }
 .route-actions { display: flex; gap: 0.5rem; }
 .route-error { color: #b42318; }
+
+@media (max-width: 520px) {
+  .route-panel thead { display: none; }
+  .route-panel table, .route-panel tbody, .route-panel tr, .route-panel td { display: block; width: 100%; }
+  .route-panel tr { display: grid; gap: 8px; padding: 14px 0; border-bottom: 1px solid var(--color-border); }
+  .route-panel td { display: grid; grid-template-columns: 100px 1fr; gap: 10px; align-items: center; padding: 0; border: 0 !important; }
+  .route-panel td::before { content: attr(data-label); color: var(--color-text-muted); font-size: .72rem; font-weight: 700; letter-spacing: .035em; text-transform: uppercase; }
+  .route-actions { display: flex !important; flex-wrap: wrap; }
+  .route-actions::before { margin-right: auto; }
+}

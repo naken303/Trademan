@@ -3,20 +3,20 @@
 ## Last Updated
 
 - Date: 2026-09-11
-- Commit: This commit (`Complete final UI UX integration review`)
+- Commit: This commit (`Complete final release verification`)
 - Branch: main
 
 ## Current Phase
 
-- Phase: Release preparation
-- Current Task: Final UI/UX integration review
+- Phase: Non-optimizer milestone release-ready
+- Current Task: Final release verification
 - Task Status: `completed`
 
 ## Repository Status
 
 - Working Tree: Clean after this commit.
-- Latest Commit: This commit (`Complete final UI UX integration review`)
-- Notes: Management-page presentation, responsive data layouts, currency/duration formatting, and concise empty/loading/error states were aligned without changing domain, persistence, Simulation, or Optimizer contracts.
+- Latest Commit: This commit (`Complete final release verification`)
+- Notes: Fresh build, Vitest, lint, Playwright, Worker smoke, source-boundary, repository-hygiene, and manual responsive checks passed; no release blocker remains.
 
 ## Verification
 
@@ -52,12 +52,19 @@
 - Date: 2026-09-11
 - Details: 8 Playwright tests passed using isolated temporary SQLite and backup paths.
 
+### Optimizer Worker Smoke
+
+- Command: standalone Node process using `tests/e2e/register-tsx.mjs`, demo WorldData, and `runOptimizerInWorker`
+- Status: `PASS`
+- Date: 2026-09-11
+- Details: Worker returned 128 realized profit, 4 plan steps, and 276 expanded states, then terminated cleanly without importing database code in the Worker.
+
 ## Changes In Last Task
 
-- Files changed: Product, Village, Market, Route, Simulation, and Optimizer presentation; shared client formatting helper; E2E expectations; release checklist; and this status note.
-- What changed: Aligned Product Management with the existing page/panel/form hierarchy, added responsive Product/Village/Market data layouts, displayed persisted currency on management prices, standardized compact day/hour durations, improved actionable empty/loading/error copy, and refreshed release smoke coverage.
-- Why: Resolve verified hierarchy, readability, horizontal-overflow, currency, duration, and feedback inconsistencies found during the final cross-page review.
-- Behavior affected: Presentation and responsive layout only; CRUD, World Editor, Simulation, Optimizer, and persistence behavior are unchanged.
+- Files changed: README, Route Management responsive presentation, mobile E2E regression coverage, and this status note.
+- What changed: Replaced the obsolete Vite template README with accurate local setup/verification instructions and converted Route rows to a labeled mobile layout after final responsive verification reproduced page-level overflow at 390 px.
+- Why: Close two verified release issues: misleading startup documentation and narrow-screen Route overflow.
+- Behavior affected: Documentation and Route presentation only; route CRUD/domain behavior and persistence contracts are unchanged.
 
 ## Known Issues
 
@@ -102,7 +109,7 @@
 
 ## Remaining Work
 
-1. Final release verification.
+None for the current milestone.
 
 ## Important Notes For ChatGPT
 
@@ -144,10 +151,12 @@
 - Do not re-import the demo world during server startup; SQLite runtime state must survive restart.
 - Shared types and Zod schemas are the contract between client, server, simulation, and persistence.
 - The optimizer's primary objective is accumulated profit; continuous selling is only a tie-break preference.
-- Latest verification: build without chunk warnings, 19 Vitest files/82 tests, lint, and 8 Playwright E2E tests passed after the UI integration changes.
+- Final architecture review confirmed UI → `POST /api/optimizer/run` → authoritative repository WorldData → isolated Worker → `runOptimizer` → `SimulationEngine` → result; browser code contains no optimizer search and the Worker imports no persistence/database modules.
+- Final replay/objective review is covered by freshly passing optimizer tests: material location, money, inventory/cost basis, time, village timers/reserves, market quantities, and realized profit replay; realized profit remains primary, continuous mode is tie-break only, unsold inventory is not realized profit, and no bonus/global-optimum claim exists.
+- Final verification: build without chunk warnings, 19 Vitest files/82 tests, lint, 8 Playwright E2E tests, and standalone Worker smoke passed. Automated verification used temporary SQLite/backup paths and did not target runtime data.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-11 | This commit | PASS | PASS | PASS | PASS | 19 Vitest files/82 tests and 8 Playwright tests passed; all main pages were manually reviewed at 1440, 1024, 768, and 390 px. |
+| 2026-09-11 | This commit | PASS | PASS | PASS | PASS | Release-ready: 19 Vitest files/82 tests, 8 Playwright tests, Worker smoke, checklist/source review, and responsive inspection passed. |

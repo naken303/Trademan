@@ -24,7 +24,7 @@ test("app loads and core navigation pages initialize", async ({ page }) => {
   await expect(page.getByText("Village A", { exact: true }).first()).toBeVisible();
 });
 
-test("mobile navigation opens without horizontal page overflow", async ({ page }) => {
+test("mobile navigation and core pages avoid horizontal page overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/world");
   await page.getByRole("button", { name: "Menu" }).click();
@@ -33,6 +33,12 @@ test("mobile navigation opens without horizontal page overflow", async ({ page }
   await expect(page.getByRole("heading", { name: "Products", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  for (const path of ["villages", "routes", "market", "simulator", "optimizer", "settings"]) {
+    await page.goto(`/${path}`);
+    await page.locator("main h1, main h2").first().waitFor();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), path).toBe(true);
+  }
 });
 
 test("optimizer UI finds and explains a profitable plan", async ({ page }) => {
