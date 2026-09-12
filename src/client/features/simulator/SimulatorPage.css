@@ -1,4 +1,8 @@
 .simulation-page { display: grid; gap: 1.25rem; }
+.simulation-setup-page > header h2, .simulation-setup-page > header p { margin: 0; }
+.simulation-setup-page > header p { margin-top: var(--space-1); }
+.simulation-start-action { display: flex; justify-content: flex-end; padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
+.simulation-start-action button { min-width: 170px; }
 .simulation-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .simulation-heading h2, .simulation-heading p, .simulation-card h3, .simulation-card p { margin: 0; }
 .simulation-heading p, .simulation-card p { color: var(--color-text-secondary); }

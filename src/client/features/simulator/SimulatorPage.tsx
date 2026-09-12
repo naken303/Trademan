@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import type { RunInitialization, WorldData } from "../../../shared/types";
+import type { WorldData } from "../../../shared/types";
+import {
+  VillageResetSetup,
+} from "../../components/VillageResetSetup";
+import {
+  createVillageResetDraft,
+  parseVillageResetDraft,
+  type VillageResetDraft,
+} from "../../components/village-reset-setup-model";
 import { getWorld } from "../world/world-api";
 import type { SimulationMarket } from "./simulation-controller";
 import { useSimulationStore } from "./simulation-store";
@@ -41,32 +49,38 @@ function TradeRow(props: TradeRowProps) {
 }
 
 export function SimulatorPage() {
-  const { snapshot, loading, error, initialize, travel, buy, sell, clearError } = useSimulationStore();
+  const { snapshot, loading, error, initialize, travel, buy, sell, configureNewRun, clearError } = useSimulationStore();
   const [world, setWorld] = useState<WorldData | null>(null);
-  const [resets, setResets] = useState<Record<string, { days: string; hours: string }>>({});
+  const [resets, setResets] = useState<VillageResetDraft>({});
+  const [worldLoading, setWorldLoading] = useState(true);
+  const [worldError, setWorldError] = useState<string | null>(null);
+  const [showResetErrors, setShowResetErrors] = useState(false);
   useEffect(() => { void getWorld().then((loaded) => {
     setWorld(loaded);
-    setResets(Object.fromEntries(loaded.villages.map((village) => [village.id, {
-      days: String(village.reset.afterReset.days), hours: String(village.reset.afterReset.hours),
-    }])));
-  }); }, []);
+    setResets(createVillageResetDraft(loaded.villages));
+    setWorldError(null);
+  }).catch((cause: unknown) => {
+    setWorldError(cause instanceof Error ? cause.message : "Unable to load simulation setup.");
+  }).finally(() => setWorldLoading(false)); }, []);
 
   const start = () => {
     if (!world) return;
-    const initialization: RunInitialization = { villageResetRemaining: Object.fromEntries(world.villages.map((village) => [village.id, {
-      days: Number(resets[village.id]?.days), hours: Number(resets[village.id]?.hours),
-    }])) };
+    const { initialization } = parseVillageResetDraft(world.villages, resets);
+    setShowResetErrors(true);
+    if (!initialization) return;
     void initialize(initialization);
   };
 
-  if (!snapshot) return <section className="simulation-page"><h2>Simulation</h2>
-    {!world ? <p>Loading simulation setup...</p> : <><p>Set the current reset remaining for this run.</p>
-      <div className="simulation-card">{world.villages.map((village) => <fieldset key={village.id}><legend>{village.name}</legend>
-        <label>Current reset days<input type="number" min="0" step="1" value={resets[village.id]?.days ?? ""} onChange={(event) => setResets((current) => ({ ...current, [village.id]: { ...current[village.id], days: event.target.value } }))} /></label>
-        <label>Current reset hours<input type="number" min="0" max="23" step="1" value={resets[village.id]?.hours ?? ""} onChange={(event) => setResets((current) => ({ ...current, [village.id]: { ...current[village.id], hours: event.target.value } }))} /></label>
-      </fieldset>)}</div>
-      {error && <p className="simulation-error">{error}</p>}
-      <button type="button" disabled={loading} onClick={start}>{loading ? "Starting..." : "Start Simulation"}</button></>}
+  if (!snapshot) return <section className="simulation-page simulation-setup-page">
+    <header><h2>Simulation</h2><p>Configure the temporary village reset timers before starting the runtime simulation.</p></header>
+    {worldLoading && <div className="page-state">Loading simulation setup...</div>}
+    {!worldLoading && worldError && <div className="page-alert" role="alert">{worldError}</div>}
+    {!worldLoading && world && world.villages.length === 0 && <div className="page-state">Create at least one Village before starting a simulation.</div>}
+    {!worldLoading && world && world.villages.length > 0 && <>
+      <VillageResetSetup villages={world.villages} values={resets} onChange={setResets} disabled={loading} showAllErrors={showResetErrors} />
+      {error && <div className="simulation-error" role="alert">{error}</div>}
+      <div className="simulation-start-action"><button type="button" disabled={loading} onClick={start}>{loading ? "Starting..." : "Start Simulation"}</button></div>
+    </>}
   </section>;
 
 
@@ -83,7 +97,7 @@ export function SimulatorPage() {
   return (
     <section className="simulation-page">
       <header className="simulation-heading"><div><h2>Simulation</h2><p>Runtime changes stay inside this simulation session.</p></div>
-        <button type="button" className="secondary" onClick={start}>Restart with setup values</button></header>
+        <button type="button" className="secondary" onClick={() => { setShowResetErrors(false); configureNewRun(); }}>Configure New Run</button></header>
       {error && <div className="simulation-error" role="alert"><span>{error}</span>
         <button type="button" onClick={clearError} aria-label="Dismiss error">×</button></div>}
       <div className="simulation-stats">

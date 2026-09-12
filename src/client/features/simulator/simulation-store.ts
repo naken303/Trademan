@@ -12,6 +12,7 @@ interface SimulationStore {
   travel: (destinationId: string) => void;
   buy: (productId: string, quantity: number) => void;
   sell: (productId: string, quantity: number) => void;
+  configureNewRun: () => void;
   clearError: () => void;
 }
 
@@ -44,5 +45,6 @@ export const useSimulationStore = create<SimulationStore>((set, get) => ({
     try { set({ snapshot: controller.sell(productId, quantity), error: null }); }
     catch (error) { set({ error: errorMessage(error) }); }
   },
+  configureNewRun: () => set({ controller: null, snapshot: null, error: null }),
   clearError: () => set({ error: null }),
 }));

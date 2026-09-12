@@ -80,27 +80,47 @@ test("CRUD UI persists revised contracts", async ({ page, request }) => {
   expect(errors).toEqual([]);
 });
 
-test("simulation and optimizer accept run-specific reset setup", async ({ page }) => {
+test("simulation and optimizer share visual run-specific reset setup", async ({ page }) => {
+  const pageErrors: string[] = [];
+  const villageWrites: string[] = [];
+  const optimizerPayloads: unknown[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  page.on("request", (request) => {
+    if (/\/api\/villages(?:\/|$)/.test(request.url()) && request.method() !== "GET") villageWrites.push(`${request.method()} ${request.url()}`);
+    if (request.url().endsWith("/api/optimizer/run") && request.method() === "POST") optimizerPayloads.push(request.postDataJSON());
+  });
   await page.goto("/simulator");
-  const villageASetup = page.locator("fieldset").filter({ hasText: "Village A" });
-  await villageASetup.getByLabel("Current reset days").fill("0");
-  await villageASetup.getByLabel("Current reset hours").fill("2");
-  await expect(villageASetup.getByLabel("Current reset days")).toHaveValue("0");
-  await expect(villageASetup.getByLabel("Current reset hours")).toHaveValue("2");
+  const simulationCards = page.locator(".village-reset-card");
+  await expect(simulationCards).toHaveCount(5);
+  await expect(page.getByTestId("village-reset-card-A")).toContainText("Village A");
+  await page.getByLabel("Village A Current Reset Days").fill("0");
+  await page.getByLabel("Village A Current Reset Hours").fill("2");
+  await page.getByLabel("Village B Current Reset Days").fill("0");
+  await page.getByLabel("Village B Current Reset Hours").fill("4");
   await page.getByRole("button", { name: "Start Simulation" }).click();
   await expect(page.locator(".simulation-village-card").getByText("2h", { exact: true })).toBeVisible();
+  expect(villageWrites).toEqual([]);
   await page.getByRole("button", { name: /Audit Village/ }).click();
   await expect(page.getByText("Day 1, 2:00", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /Village A/ }).click();
   await expect(page.getByText("Day 1, 7:00", { exact: true })).toBeVisible();
   await page.goto("/optimizer");
-  await page.getByLabel("Reset hours for Village A").fill("3");
+  await expect(page.getByRole("heading", { name: "Search Configuration" })).toBeVisible();
+  await expect(page.locator(".village-reset-card")).toHaveCount(5);
+  await page.getByLabel("Village A Current Reset Hours").fill("3");
   await page.getByLabel("Optimization period (days)").fill("1");
   await page.getByLabel("Beam width").fill("20");
   await page.getByLabel("Maximum plan steps").fill("8");
   await page.getByLabel("Maximum expanded states").fill("500");
   await page.getByRole("button", { name: "Run Optimizer" }).click();
   await expect(page.getByText("Best realized profit")).toBeVisible({ timeout: 30_000 });
+  expect(optimizerPayloads[0]).toMatchObject({ villageResetRemaining: { A: { days: 1, hours: 3 } } });
+  await page.getByLabel("Village A Current Reset Hours").fill("5");
+  await page.getByRole("button", { name: "Run Optimizer" }).click();
+  await expect.poll(() => optimizerPayloads.length).toBe(2);
+  expect(optimizerPayloads[1]).toMatchObject({ villageResetRemaining: { A: { days: 1, hours: 5 } } });
+  expect(villageWrites).toEqual([]);
+  expect(pageErrors).toEqual([]);
 });
 
 test("rejected import leaves exported world unchanged", async ({ request }) => {

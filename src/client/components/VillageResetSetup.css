@@ -1,0 +1,22 @@
+.village-reset-setup { display: grid; gap: var(--space-4); }
+.village-reset-heading h3, .village-reset-heading p, .village-reset-identity h4 { margin: 0; }
+.village-reset-heading h3 { font-size: 1.05rem; }
+.village-reset-heading p { margin-top: var(--space-1); font-size: .86rem; }
+.village-reset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: var(--space-4); align-items: stretch; }
+.village-reset-card { display: grid; grid-template-rows: 112px minmax(66px, auto) auto; min-width: 0; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-1); box-shadow: var(--shadow-panel); transition: border-color .15s ease, box-shadow .15s ease; }
+.village-reset-card:focus-within { border-color: var(--color-focus); box-shadow: 0 0 0 2px rgb(96 165 250 / 18%), var(--shadow-panel); }
+.village-reset-card.has-error { border-color: var(--color-danger); }
+.village-reset-visual { display: grid; place-items: center; min-height: 0; overflow: hidden; background: linear-gradient(145deg, #14294a, var(--color-surface-2)); }
+.village-reset-visual img { width: 100%; height: 100%; object-fit: contain; padding: var(--space-2); }
+.village-reset-fallback { display: grid; place-items: center; width: 58px; height: 58px; border: 1px solid var(--color-border-strong); border-radius: 18px; background: rgb(8 17 31 / 55%); font-size: 2rem; }
+.village-reset-identity { display: grid; align-content: center; gap: 3px; min-width: 0; padding: var(--space-3) var(--space-4); }
+.village-reset-identity h4 { overflow-wrap: anywhere; font-size: 1rem; }
+.village-reset-identity small { color: var(--color-text-muted); font-size: .75rem; }
+.village-reset-inputs { display: grid; gap: var(--space-2); padding: var(--space-3) var(--space-4) var(--space-4); border-top: 1px solid var(--color-border); background: var(--color-surface-2); }
+.village-reset-inputs > strong { font-size: .78rem; letter-spacing: .035em; text-transform: uppercase; }
+.village-reset-fields { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.village-reset-fields label { display: grid; gap: var(--space-1); min-width: 0; font-size: .72rem; font-weight: 650; }
+.village-reset-fields input { width: 100%; min-width: 0; }
+.village-reset-fields input[aria-invalid="true"] { border-color: var(--color-danger); }
+.village-reset-error { color: #fecaca !important; font-size: .72rem; line-height: 1.35; }
+@media (max-width: 520px) { .village-reset-grid { grid-template-columns: 1fr; } .village-reset-card { grid-template-columns: 96px minmax(0, 1fr); grid-template-rows: auto auto; } .village-reset-visual { grid-row: 1; min-height: 92px; } .village-reset-identity { grid-row: 1; } .village-reset-inputs { grid-column: 1 / -1; } }

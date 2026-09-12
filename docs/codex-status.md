@@ -3,20 +3,20 @@
 ## Last Updated
 
 - Date: 2026-09-12
-- Commit: `3f762d2` (`Revise routes reset setup market quantities and product IDs`)
+- Commit: This commit (`Redesign village reset setup UI`)
 - Branch: main
 
 ## Current Phase
 
-- Phase: Contract revision implemented; release verification pending
-- Current Task: Routes, reset setup, market quantity, and product ID model revision
+- Phase: Targeted Current Reset UX correction complete; release verification pending
+- Current Task: Shared visual Village Current Reset setup for Simulation and Optimizer
 - Task Status: `completed`
 
 ## Repository Status
 
-- Working Tree: Tracked files clean after the status-note commit; pre-existing untracked asset directories remain (`corrected-set-01/`, `item-crops/`, and `sample-crops/`).
-- Latest Commit: This status-note commit, following implementation commit `3f762d2`.
-- Notes: The four requested contract revisions are implemented with additive migration and legacy WorldData normalization; the pre-existing untracked asset directories were not modified or committed, and a fresh final release verification remains required.
+- Working Tree: Tracked files clean after this commit; pre-existing untracked asset directories remain (`corrected-set-01/`, `item-crops/`, and `sample-crops/`).
+- Latest Commit: This commit (`Redesign village reset setup UI`).
+- Notes: Simulation and Optimizer now share one responsive visual reset-setup component; no domain, API, persistence, or SQLite contract changed.
 
 ## Verification
 
@@ -33,9 +33,9 @@
 - Command: `npm run test`
 - Status: `PASS`
 - Date: 2026-09-12
-- Tests: 20 test files passed; 89 tests passed.
+- Tests: 21 test files passed; 94 tests passed.
 - Error Summary: None
-- Details: 20 Vitest files and 89 tests completed successfully, including optimizer Worker/API coverage and imported Product ID sequence advancement.
+- Details: 21 Vitest files and 94 tests completed successfully, including five focused reset-draft mapping and local-validation tests.
 
 ### Lint
 
@@ -50,7 +50,7 @@
 - Command: `npm run e2e`
 - Status: `PASS`
 - Date: 2026-09-12
-- Details: 4 revised Playwright flows passed using isolated temporary SQLite and backup paths; coverage includes revised CRUD, one-edge route presentation, unit/crate synchronization, run reset setup, and rejected import safety.
+- Details: 4 Playwright flows passed using isolated temporary SQLite and backup paths; reset coverage verifies shared visual cards, temporary Simulation/Optimizer values, two Optimizer runs, payload mapping, no Village write, and no page errors.
 
 ### Optimizer Worker Smoke
 
@@ -61,10 +61,10 @@
 
 ## Changes In Last Task
 
-- Files changed: shared route/village/run contracts, additive SQLite migration, repositories/importer, Product/Village/Route/Market/World/Simulation/Optimizer client and server paths, seed, focused tests, E2E, and this status note.
-- What changed: Routes are one bidirectional pair with optional return duration; current reset is run-specific; market editors synchronize units and decimal crates; new Product IDs are generated monotonically by the server and hidden from normal UI.
-- Why: Implement the requested domain/UI model revision without rewriting legacy Product IDs or persisting transient run timers.
-- Behavior affected: WorldData canonical export, route CRUD/travel/canvas, Village CRUD, Simulation/Optimizer startup, market quantity editing, and Product creation/presentation.
+- Files changed: shared Village reset setup component/model/CSS, Simulation page/store/CSS, Optimizer page/CSS, global theme selector, focused tests, E2E, and this status note.
+- What changed: Each Village is now a visual reset card with image fallback, prominent name, read-only reset cycle, compact Days/Hours inputs, and local validation in a responsive shared grid.
+- Why: Correct the broken Current Reset presentation while keeping the existing temporary per-run contract unchanged.
+- Behavior affected: Simulation setup and new-run flow, Optimizer search/setup hierarchy, responsive reset editing, and validation feedback only.
 
 ## Known Issues
 
@@ -106,6 +106,7 @@
 - World Editor supports directional route connection/edit dialogs and product-palette drag/drop market creation/editing with immediate persisted refresh.
 - Products support optional Supply/Demand price defaults through schema, SQLite migration `004_product_base_prices.sql`, CRUD, import/export, seed, and UI; the Product Palette supports searchable draggable Images/Details grids.
 - World routes use one custom bidirectional edge per village pair with smart top/right/bottom/left attachments, compact duration labels, arrowheads at both ends, and stable selected geometry.
+- Simulation and Optimizer share a responsive Village Current Reset card/grid with per-card validation and accessible Village-specific input labels.
 
 ## Remaining Work
 
@@ -158,11 +159,12 @@
 - Village master data exports only the recurring `reset.afterReset`; legacy `reset.current` input is accepted and removed during WorldData normalization. Simulation and Optimizer receive current reset remaining per run without persistence.
 - Market quantities remain positive integer units in WorldData/SQLite. Both market editors derive decimal crates from `unitsPerCrate` and reject crate values that do not resolve to whole units; inventory capacity still uses ceiling crate rules.
 - Product create requests omit `id`; SQLite-backed IDs use monotonic `P000001` formatting while legacy IDs such as `MILK` remain unchanged and updateable.
-- Latest verification: build PASS, 20 Vitest files/89 tests PASS, lint PASS, and 4 isolated Playwright tests PASS. A final release verification is the next task.
+- Current Reset card edits remain client-local until Start Simulation or Run Optimizer; E2E verified that editing does not issue Village persistence requests.
+- Responsive browser inspection passed at 1440, 1024, 768, and 390 px for both setup pages, including local error presentation and Optimizer results; no page-level horizontal overflow was observed.
+- Latest verification: build PASS, 21 Vitest files/94 tests PASS, lint PASS, and 4 isolated Playwright tests PASS. A final release verification is the next task.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-11 | This commit | PASS | PASS | PASS | PASS | Release-ready: 19 Vitest files/82 tests, 8 Playwright tests, Worker smoke, checklist/source review, and responsive inspection passed. |
-| 2026-09-12 | This commit | PASS | PASS | PASS | PASS | Contract revision: 20 Vitest files/89 tests and 4 revised isolated Playwright flows passed; final release review remains. |
+| 2026-09-12 | This commit | PASS | PASS | PASS | PASS | Shared reset-card UX: 21 Vitest files/94 tests, 4 isolated Playwright flows, and 1440/1024/768/390 px browser inspection passed. |
