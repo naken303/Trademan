@@ -50,3 +50,20 @@ describe("Product base prices", () => {
     expect(productSchema.safeParse({ ...product, baseDemandPrice: -1 }).success).toBe(false);
   });
 });
+
+describe("legacy world normalization", () => {
+  it("merges opposite directional routes and preserves asymmetric durations", () => {
+    const seed = JSON.parse(readFileSync(resolve(process.cwd(), "database/seed/demo-world.json"), "utf-8"));
+    seed.routes = [
+      { id: "A-B", from: "A", to: "B", travelTime: { days: 0, hours: 4 } },
+      { id: "B-A", from: "B", to: "A", travelTime: { days: 0, hours: 6 } },
+    ];
+    seed.villages = seed.villages.map((village: Record<string, unknown>) => ({
+      ...village,
+      reset: { current: { days: 0, hours: 3 }, afterReset: { days: 1, hours: 2 } },
+    }));
+    const world = worldDataSchema.parse(seed);
+    expect(world.routes).toEqual([{ id: "A-B", from: "A", to: "B", travelTime: { days: 0, hours: 4 }, reverseTravelTime: { days: 0, hours: 6 } }]);
+    expect(world.villages[0].reset).toEqual({ afterReset: { days: 1, hours: 2 } });
+  });
+});

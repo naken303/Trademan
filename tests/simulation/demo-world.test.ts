@@ -39,6 +39,10 @@ function loadWorld(): WorldData {
   return worldDataSchema.parse(data);
 }
 
+const runInitialization = (world: WorldData) => ({
+  villageResetRemaining: Object.fromEntries(world.villages.map((village) => [village.id, { days: 0, hours: 12 }])),
+});
+
 describe("Demo World Simulation", () => {
   it("creates the initial simulation state", () => {
     const world = loadWorld();
@@ -46,6 +50,7 @@ describe("Demo World Simulation", () => {
     const state =
       createInitialSimulationState(
         world,
+        runInitialization(world),
       );
 
     expect(
@@ -69,6 +74,7 @@ describe("Demo World Simulation", () => {
     const state =
       createInitialSimulationState(
         world,
+        runInitialization(world),
       );
 
     const engine =
@@ -100,6 +106,7 @@ describe("Demo World Simulation", () => {
     const state =
       createInitialSimulationState(
         world,
+        runInitialization(world),
       );
   
     const engine =
@@ -143,6 +150,7 @@ describe("Demo World Simulation", () => {
     const state =
       createInitialSimulationState(
         world,
+        runInitialization(world),
       );
   
     const engine =

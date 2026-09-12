@@ -66,8 +66,8 @@ export function VillageNode({
   );
 
   const resetText = formatDuration(
-    village.reset.current.days,
-    village.reset.current.hours,
+    village.reset.afterReset.days,
+    village.reset.afterReset.hours,
   );
 
   return (

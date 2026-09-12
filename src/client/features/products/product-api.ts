@@ -43,7 +43,7 @@ export async function getProducts(): Promise<Product[]> {
 }
 
 export async function createProduct(
-  product: Product,
+  product: Omit<Product, "id">,
 ): Promise<Product> {
   const response = await fetch("/api/products", {
     method: "POST",

@@ -1,13 +1,14 @@
 import { create } from "zustand";
 import { getWorld } from "../world/world-api";
 import { SimulationController, type SimulationSnapshot } from "./simulation-controller";
+import type { RunInitialization } from "../../../shared/types";
 
 interface SimulationStore {
   controller: SimulationController | null;
   snapshot: SimulationSnapshot | null;
   loading: boolean;
   error: string | null;
-  initialize: () => Promise<void>;
+  initialize: (initialization: RunInitialization) => Promise<void>;
   travel: (destinationId: string) => void;
   buy: (productId: string, quantity: number) => void;
   sell: (productId: string, quantity: number) => void;
@@ -18,10 +19,10 @@ const errorMessage = (error: unknown) => error instanceof Error ? error.message 
 
 export const useSimulationStore = create<SimulationStore>((set, get) => ({
   controller: null, snapshot: null, loading: false, error: null,
-  initialize: async () => {
+  initialize: async (initialization) => {
     set({ loading: true, error: null });
     try {
-      const controller = new SimulationController(await getWorld());
+      const controller = new SimulationController(await getWorld(), initialization);
       set({ controller, snapshot: controller.getSnapshot(), loading: false });
     } catch (error) { set({ loading: false, error: errorMessage(error) }); }
   },

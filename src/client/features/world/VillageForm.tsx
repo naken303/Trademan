@@ -18,9 +18,6 @@ interface FormState {
   name: string;
   initialReserveMoney: string;
 
-  currentDays: string;
-  currentHours: string;
-
   afterResetDays: string;
   afterResetHours: string;
 }
@@ -38,22 +35,6 @@ function createInitialForm(
             village.initialReserveMoney,
           )
         : "",
-
-    currentDays:
-      village !== null &&
-      village !== undefined
-        ? String(
-            village.reset.current.days,
-          )
-        : "0",
-
-    currentHours:
-      village !== null &&
-      village !== undefined
-        ? String(
-            village.reset.current.hours,
-          )
-        : "0",
 
     afterResetDays:
       village !== null &&
@@ -117,12 +98,6 @@ export function VillageForm({
         form.initialReserveMoney,
       );
 
-    const currentDays =
-      Number(form.currentDays);
-
-    const currentHours =
-      Number(form.currentHours);
-
     const afterResetDays =
       Number(form.afterResetDays);
 
@@ -149,27 +124,6 @@ export function VillageForm({
     }
 
     if (
-      !Number.isInteger(currentDays) ||
-      currentDays < 0
-    ) {
-      setError(
-        "Current reset days must be a whole number of zero or greater.",
-      );
-      return;
-    }
-
-    if (
-      !Number.isInteger(currentHours) ||
-      currentHours < 0 ||
-      currentHours > 23
-    ) {
-      setError(
-        "Current reset hours must be between 0 and 23.",
-      );
-      return;
-    }
-
-    if (
       !Number.isInteger(
         afterResetDays,
       ) ||
@@ -190,16 +144,6 @@ export function VillageForm({
     ) {
       setError(
         "After-reset hours must be between 0 and 23.",
-      );
-      return;
-    }
-
-    if (
-      currentDays === 0 &&
-      currentHours === 0
-    ) {
-      setError(
-        "Current reset duration must be greater than zero.",
       );
       return;
     }
@@ -235,11 +179,6 @@ export function VillageForm({
         initialReserveMoney,
 
         reset: {
-          current: {
-            days: currentDays,
-            hours: currentHours,
-          },
-
           afterReset: {
             days: afterResetDays,
             hours: afterResetHours,
@@ -302,55 +241,6 @@ export function VillageForm({
           }
         />
       </div>
-
-      <fieldset>
-        <legend>
-          Current Reset
-        </legend>
-
-        <div className="village-duration-fields">
-          <div className="village-form-field">
-            <label htmlFor="village-current-days">
-              Days
-            </label>
-
-            <input
-              id="village-current-days"
-              type="number"
-              min="0"
-              step="1"
-              value={form.currentDays}
-              onChange={(event) =>
-                updateField(
-                  "currentDays",
-                  event.target.value,
-                )
-              }
-            />
-          </div>
-
-          <div className="village-form-field">
-            <label htmlFor="village-current-hours">
-              Hours
-            </label>
-
-            <input
-              id="village-current-hours"
-              type="number"
-              min="0"
-              max="23"
-              step="1"
-              value={form.currentHours}
-              onChange={(event) =>
-                updateField(
-                  "currentHours",
-                  event.target.value,
-                )
-              }
-            />
-          </div>
-        </div>
-      </fieldset>
 
       <fieldset>
         <legend>

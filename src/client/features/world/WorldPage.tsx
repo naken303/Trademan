@@ -20,7 +20,9 @@ export function WorldPage() {
 
   const connectRoute = useCallback((from: string, to: string) => {
     const current = useWorldStore.getState().world; if (!current || from === to) return;
-    setRouteDraft({ from, to, existing: current.routes.find((route) => route.from === from && route.to === to) });
+    const existing = current.routes.find((route) =>
+      (route.from === from && route.to === to) || (route.from === to && route.to === from));
+    setRouteDraft({ from: existing?.from ?? from, to: existing?.to ?? to, existing });
   }, []);
   const editRoute = useCallback((routeId: string) => { const current = useWorldStore.getState().world; const existing = current?.routes.find((route) => route.id === routeId); if (existing) setRouteDraft({ from: existing.from, to: existing.to, existing }); }, []);
   const dropProduct = useCallback((productId: string, villageId: string) => { const current = useWorldStore.getState().world; setProductDragActive(false); if (current?.products.some((product) => product.id === productId) && current.villages.some((village) => village.id === villageId)) setMarketDraft({ productId, villageId }); }, []);

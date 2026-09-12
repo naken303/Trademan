@@ -49,7 +49,7 @@ routesRouter.post("/", (req, res) => {
     return;
   }
   if (getRouteByEndpoints(parsed.data.from, parsed.data.to)) {
-    res.status(409).json({ error: "A route already exists for this direction" });
+    res.status(409).json({ error: "A route already exists for this village pair" });
     return;
   }
   const route = { id: randomUUID(), ...parsed.data };
@@ -75,7 +75,7 @@ routesRouter.put("/:id", (req, res) => {
   }
   const duplicate = getRouteByEndpoints(parsed.data.from, parsed.data.to);
   if (duplicate && duplicate.id !== id) {
-    res.status(409).json({ error: "A route already exists for this direction" });
+    res.status(409).json({ error: "A route already exists for this village pair" });
     return;
   }
   const route = { id, ...parsed.data };

@@ -4,12 +4,19 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createApp } from "../../src/server/app";
 import { loadDemoWorld } from "../../src/server/database";
+import { worldDataSchema } from "../../src/shared/schemas";
 
 let server: Server;
 let baseUrl: string;
 
 async function request(path: string, init?: RequestInit) {
   return fetch(`${baseUrl}${path}`, init);
+}
+
+async function expectValidWorld() {
+  const response = await request("/api/world");
+  expect(response.status).toBe(200);
+  return worldDataSchema.parse(await response.json());
 }
 
 beforeAll(async () => {
@@ -92,7 +99,6 @@ describe("World and Village HTTP API", () => {
       visual: { icon: "house", image: "assets/villages/http.png" },
       initialReserveMoney: 250,
       reset: {
-        current: { days: 0, hours: 2 },
         afterReset: { days: 1, hours: 0 },
       },
     };
@@ -138,6 +144,7 @@ describe("World and Village HTTP API", () => {
     });
     expect(deletedResponse.status).toBe(200);
     expect((await request(`/api/world/villages/${created.id}`)).status).toBe(404);
+    await expectValidWorld();
   });
 
   it("rejects invalid data and returns 404 for unknown villages", async () => {
@@ -148,6 +155,17 @@ describe("World and Village HTTP API", () => {
     });
     expect(invalid.status).toBe(400);
     expect((await request("/api/world/villages/missing")).status).toBe(404);
+    expect((await request("/api/world/villages/missing", { method: "DELETE" })).status).toBe(404);
+  });
+
+  it("returns a client-safe conflict when deleting the player's current village", async () => {
+    const before = await expectValidWorld();
+    const response = await request(`/api/world/villages/${before.player.currentVillageId}`, { method: "DELETE" });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: "This village is the player's current village. Choose another current village in Database & Settings before deleting it.",
+    });
+    expect(await expectValidWorld()).toEqual(before);
   });
 });
 
@@ -185,6 +203,7 @@ describe("Route HTTP API", () => {
 
     expect((await request(`/api/routes/${created.id}`, { method: "DELETE" })).status).toBe(200);
     expect((await request(`/api/routes/${created.id}`)).status).toBe(404);
+    await expectValidWorld();
   });
 
   it("rejects self routes, zero duration, and unknown villages", async () => {
@@ -202,34 +221,49 @@ describe("Route HTTP API", () => {
     }
   });
 
-  it("rejects duplicate directions while allowing an explicit reverse route", async () => {
+  it("treats both orientations as one route pair", async () => {
     const duplicate = await request("/api/routes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from: "A", to: "B", travelTime: { days: 0, hours: 9 } }) });
     expect(duplicate.status).toBe(409);
     const reverseResponse = await request("/api/routes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ from: "B", to: "A", travelTime: { days: 0, hours: 9 } }) });
-    expect(reverseResponse.status).toBe(201);
-    const reverse = await reverseResponse.json();
-    expect((await request(`/api/routes/${reverse.id}`, { method: "DELETE" })).status).toBe(200);
+    expect(reverseResponse.status).toBe(409);
+    await expectValidWorld();
   });
 });
 
 describe("Product HTTP API", () => {
+  it("generates monotonic product IDs and preserves legacy IDs", async () => {
+    const create = () => request("/api/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "Generated", unitsPerCrate: 2 }) });
+    const first = await (await create()).json();
+    const second = await (await create()).json();
+    expect(first.id).toMatch(/^P\d{6}$/);
+    expect(Number(second.id.slice(1))).toBeGreaterThan(Number(first.id.slice(1)));
+    await request(`/api/products/${second.id}`, { method: "DELETE" });
+    const third = await (await create()).json();
+    expect(Number(third.id.slice(1))).toBeGreaterThan(Number(second.id.slice(1)));
+    expect((await request("/api/products/MILK")).status).toBe(200);
+    for (const id of [first.id, third.id]) await request(`/api/products/${id}`, { method: "DELETE" });
+  });
   it("round-trips optional base prices and does not update an existing market", async () => {
-    const product = { id: "HTTP-P", name: "HTTP Product", unitsPerCrate: 10, baseSupplyPrice: 7 };
+    const product = { name: "HTTP Product", unitsPerCrate: 10, baseSupplyPrice: 7 };
     const created = await request("/api/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(product) });
     expect(created.status).toBe(201);
-    expect(await created.json()).toEqual(product);
+    const createdProduct = await created.json();
+    expect(createdProduct).toMatchObject(product);
+    expect(createdProduct.id).toMatch(/^P\d{6}$/);
 
-    const marketResponse = await request("/api/markets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ villageId: "B", productId: product.id, side: "supply", unitPrice: 9, initialQuantity: 3 }) });
+    const marketResponse = await request("/api/markets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ villageId: "B", productId: createdProduct.id, side: "supply", unitPrice: 9, initialQuantity: 3 }) });
     const market = await marketResponse.json();
     expect(marketResponse.status).toBe(201);
 
-    const updatedProduct = { ...product, baseSupplyPrice: 12, baseDemandPrice: 15 };
-    const updated = await request(`/api/products/${product.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updatedProduct) });
+    const updatedProduct = { ...createdProduct, name: "Renamed HTTP Product", baseSupplyPrice: 12, baseDemandPrice: 15 };
+    const updated = await request(`/api/products/${createdProduct.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updatedProduct) });
     expect(await updated.json()).toEqual(updatedProduct);
     expect(await (await request(`/api/markets/${market.id}`)).json()).toMatchObject({ unitPrice: 9 });
 
     expect((await request(`/api/markets/${market.id}`, { method: "DELETE" })).status).toBe(200);
-    expect((await request(`/api/products/${product.id}`, { method: "DELETE" })).status).toBe(204);
+    expect((await request(`/api/products/${createdProduct.id}`, { method: "DELETE" })).status).toBe(204);
+    expect((await request(`/api/products/${createdProduct.id}`)).status).toBe(404);
+    await expectValidWorld();
   });
 
   it("rejects invalid product base prices", async () => {
@@ -237,6 +271,8 @@ describe("Product HTTP API", () => {
       const response = await request("/api/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: `BAD-${value}`, name: "Bad", unitsPerCrate: 10, baseDemandPrice: value }) });
       expect(response.status).toBe(400);
     }
+    expect((await request("/api/products/MISSING", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: "MISSING", name: "Missing", unitsPerCrate: 1 }) })).status).toBe(404);
+    expect((await request("/api/products/MISSING", { method: "DELETE" })).status).toBe(404);
   });
 });
 
@@ -251,6 +287,7 @@ describe("Market HTTP API", () => {
     expect(demandResponse.status).toBe(201); const demand = await demandResponse.json();
     expect((await request(`/api/markets/${demand.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(supplyInput) })).status).toBe(409);
     for (const market of [supply, demand]) expect((await request(`/api/markets/${market.id}`, { method: "DELETE" })).status).toBe(200);
+    await expectValidWorld();
   });
 
   it("rejects zero or negative price and quantity", async () => {
@@ -258,5 +295,7 @@ describe("Market HTTP API", () => {
       { villageId: "B", productId: "MILK", side: "supply", unitPrice: 0, initialQuantity: 1 },
       { villageId: "B", productId: "MILK", side: "supply", unitPrice: 1, initialQuantity: 0 },
     ]) expect((await request("/api/markets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) })).status).toBe(400);
+    expect((await request("/api/markets/missing", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ villageId: "A", productId: "MILK", side: "supply", unitPrice: 1, initialQuantity: 1 }) })).status).toBe(404);
+    expect((await request("/api/markets/missing", { method: "DELETE" })).status).toBe(404);
   });
 });

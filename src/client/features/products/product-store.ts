@@ -16,7 +16,7 @@ interface ProductStore {
 
   loadProducts: () => Promise<void>;
 
-  addProduct: (product: Product) => Promise<void>;
+  addProduct: (product: Omit<Product, "id">) => Promise<Product>;
 
   editProduct: (product: Product) => Promise<void>;
 
@@ -75,6 +75,7 @@ export const useProductStore = create<ProductStore>(
           loading: false,
           error: null,
         }));
+        return createdProduct;
       } catch (error) {
         set({
           loading: false,

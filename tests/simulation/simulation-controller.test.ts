@@ -11,9 +11,9 @@ const world: WorldData = {
   products: [{ id: "grain", name: "Grain", unitsPerCrate: 10 }],
   villages: [
     { id: "farm", name: "Farm", position: { x: 0, y: 0 }, initialReserveMoney: 100,
-      reset: { current: { days: 1, hours: 0 }, afterReset: { days: 1, hours: 0 } } },
+      reset: { afterReset: { days: 1, hours: 0 } } },
     { id: "town", name: "Town", position: { x: 1, y: 1 }, initialReserveMoney: 200,
-      reset: { current: { days: 0, hours: 2 }, afterReset: { days: 1, hours: 0 } } },
+      reset: { afterReset: { days: 1, hours: 0 } } },
   ],
   routes: [{ id: "farm-town", from: "farm", to: "town", travelTime: { days: 0, hours: 3 } }],
   markets: [
@@ -21,10 +21,11 @@ const world: WorldData = {
     { id: "town-grain", villageId: "town", productId: "grain", side: "demand", unitPrice: 8, initialQuantity: 10 },
   ],
 };
+const initialization = { villageResetRemaining: { farm: { days: 1, hours: 0 }, town: { days: 0, hours: 2 } } };
 
 describe("SimulationController", () => {
   it("runs initialize -> buy -> travel -> sell and refreshes its snapshot", () => {
-    const controller = new SimulationController(world);
+    const controller = new SimulationController(world, initialization);
     expect(controller.getSnapshot().currentVillage.id).toBe("farm");
     expect(controller.buy("grain", 10).usedInventoryCrates).toBe(1);
 
@@ -40,7 +41,7 @@ describe("SimulationController", () => {
   });
 
   it("lists reverse travel through the domain fallback", () => {
-    const controller = new SimulationController(world);
+    const controller = new SimulationController(world, initialization);
     controller.travel("town");
     expect(controller.getSnapshot().destinations).toEqual([
       expect.objectContaining({ village: expect.objectContaining({ id: "farm" }), travelTime: { days: 0, hours: 3 } }),

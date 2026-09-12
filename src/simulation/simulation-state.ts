@@ -1,5 +1,6 @@
 import type {
   Market,
+  RunInitialization,
   SimulationState,
   WorldData,
 } from "../shared/types";
@@ -25,11 +26,18 @@ function buildVillageMarkets(
 
 export function createInitialSimulationState(
   world: WorldData,
+  initialization: RunInitialization = {
+    villageResetRemaining: Object.fromEntries(
+      world.villages.map((village) => [village.id, village.reset.afterReset]),
+    ),
+  },
 ): SimulationState {
   const villages: Record<string, SimulationState["villages"][string]> =
     {};
 
   for (const village of world.villages) {
+    const currentReset = initialization.villageResetRemaining[village.id];
+    if (!currentReset) throw new Error(`Current reset remaining is required for village: ${village.id}`);
     const initialMarkets =
       buildVillageMarkets(
         village.id,
@@ -47,7 +55,7 @@ export function createInitialSimulationState(
 
       reset: {
         current: {
-          ...village.reset.current,
+          ...currentReset,
         },
       },
 

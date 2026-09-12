@@ -2,21 +2,21 @@
 
 ## Last Updated
 
-- Date: 2026-09-11
-- Commit: This commit (`Complete final release verification`)
+- Date: 2026-09-12
+- Commit: This commit (`Revise routes reset setup market quantities and product IDs`)
 - Branch: main
 
 ## Current Phase
 
-- Phase: Non-optimizer milestone release-ready
-- Current Task: Final release verification
+- Phase: Contract revision implemented; release verification pending
+- Current Task: Routes, reset setup, market quantity, and product ID model revision
 - Task Status: `completed`
 
 ## Repository Status
 
 - Working Tree: Clean after this commit.
-- Latest Commit: This commit (`Complete final release verification`)
-- Notes: Fresh build, Vitest, lint, Playwright, Worker smoke, source-boundary, repository-hygiene, and manual responsive checks passed; no release blocker remains.
+- Latest Commit: This commit (`Revise routes reset setup market quantities and product IDs`)
+- Notes: The four requested contract revisions are implemented with additive migration and legacy WorldData normalization; a fresh final release verification remains required.
 
 ## Verification
 
@@ -24,7 +24,7 @@
 
 - Command: `npm run build`
 - Status: `PASS`
-- Date: 2026-09-11
+- Date: 2026-09-12
 - Error Summary: None
 - Details: Production build completed without the prior chunk-size warning after page-level lazy loading.
 
@@ -32,16 +32,16 @@
 
 - Command: `npm run test`
 - Status: `PASS`
-- Date: 2026-09-11
-- Tests: 19 test files passed; 82 tests passed.
+- Date: 2026-09-12
+- Tests: 20 test files passed; 89 tests passed.
 - Error Summary: None
-- Details: 19 Vitest files and 82 tests completed successfully.
+- Details: 20 Vitest files and 89 tests completed successfully, including optimizer Worker/API coverage and imported Product ID sequence advancement.
 
 ### Lint
 
 - Command: `npm run lint`
 - Status: `PASS`
-- Date: 2026-09-11
+- Date: 2026-09-12
 - Error Summary: None
 - Details: ESLint completed successfully.
 
@@ -49,22 +49,22 @@
 
 - Command: `npm run e2e`
 - Status: `PASS`
-- Date: 2026-09-11
-- Details: 8 Playwright tests passed using isolated temporary SQLite and backup paths.
+- Date: 2026-09-12
+- Details: 4 revised Playwright flows passed using isolated temporary SQLite and backup paths; coverage includes revised CRUD, one-edge route presentation, unit/crate synchronization, run reset setup, and rejected import safety.
 
 ### Optimizer Worker Smoke
 
-- Command: standalone Node process using `tests/e2e/register-tsx.mjs`, demo WorldData, and `runOptimizerInWorker`
+- Command: `npm run test -- --run tests/optimizer/optimizer-worker-api.test.ts` (included in the focused 21-test run and the full suite)
 - Status: `PASS`
-- Date: 2026-09-11
-- Details: Worker returned 128 realized profit, 4 plan steps, and 276 expanded states, then terminated cleanly without importing database code in the Worker.
+- Date: 2026-09-12
+- Details: Worker/API integration tests completed successfully with the revised run-specific reset contract.
 
 ## Changes In Last Task
 
-- Files changed: README, Route Management responsive presentation, mobile E2E regression coverage, and this status note.
-- What changed: Replaced the obsolete Vite template README with accurate local setup/verification instructions and converted Route rows to a labeled mobile layout after final responsive verification reproduced page-level overflow at 390 px.
-- Why: Close two verified release issues: misleading startup documentation and narrow-screen Route overflow.
-- Behavior affected: Documentation and Route presentation only; route CRUD/domain behavior and persistence contracts are unchanged.
+- Files changed: shared route/village/run contracts, additive SQLite migration, repositories/importer, Product/Village/Route/Market/World/Simulation/Optimizer client and server paths, seed, focused tests, E2E, and this status note.
+- What changed: Routes are one bidirectional pair with optional return duration; current reset is run-specific; market editors synchronize units and decimal crates; new Product IDs are generated monotonically by the server and hidden from normal UI.
+- Why: Implement the requested domain/UI model revision without rewriting legacy Product IDs or persisting transient run timers.
+- Behavior affected: WorldData canonical export, route CRUD/travel/canvas, Village CRUD, Simulation/Optimizer startup, market quantity editing, and Product creation/presentation.
 
 ## Known Issues
 
@@ -75,9 +75,9 @@
    - Recommended action: Continue to verify after each scoped change.
 
 2. Low
-   - Location: `src/client/features/world/route-edge-layout.ts`
-   - Problem: Edge routing intentionally uses local smart handles and reverse-pair curves rather than global crossing or label-collision optimization.
-   - Impact: Very dense worlds can still have intersections between unrelated routes, although direction pairs and their labels remain separated.
+   - Location: World canvas route layout
+   - Problem: Edge routing intentionally uses local smart handles rather than global crossing or label-collision optimization.
+   - Impact: Very dense worlds can still have intersections between unrelated route pairs.
    - Recommended action: Reposition villages manually; consider a bounded fan-out enhancement only if dense-world usage proves it necessary.
 
 ## Completed Milestones
@@ -105,11 +105,11 @@
 - A centralized dark-blue token system, desktop sidebar, accessible mobile drawer, consistent controls/data surfaces, and responsive layouts cover all implemented pages.
 - World Editor supports directional route connection/edit dialogs and product-palette drag/drop market creation/editing with immediate persisted refresh.
 - Products support optional Supply/Demand price defaults through schema, SQLite migration `004_product_base_prices.sql`, CRUD, import/export, seed, and UI; the Product Palette supports searchable draggable Images/Details grids.
-- World routes use a custom flow-coordinate edge with deterministic pairing, smart top/right/bottom/left attachments, reverse-pair curve separation, compact duration labels, arrowheads, and stable selected geometry.
+- World routes use one custom bidirectional edge per village pair with smart top/right/bottom/left attachments, compact duration labels, arrowheads at both ends, and stable selected geometry.
 
 ## Remaining Work
 
-None for the current milestone.
+1. Run a fresh final release verification pass, including manual responsive review of the revised setup/forms.
 
 ## Important Notes For ChatGPT
 
@@ -129,7 +129,7 @@ None for the current milestone.
 - Optimizer transitions instantiate the existing `SimulationEngine` from each candidate state; cash, capacity, market, reserve, reset, travel, reverse-route, and profit rules are not duplicated.
 - Optimizer state signatures include time/location, player money, sorted inventory and cost basis, every village timer/reserve, all runtime market quantities, and accumulated realized profit.
 - Frontier ranking uses unrealized liquidation potential only as a tie-break heuristic; result profit remains `SimulationState.accumulatedProfit`, and exact global optimality is not claimed.
-- `POST /api/optimizer/run` accepts only `periodDays`, `beamWidth`, `maxSteps`, and `maxExpandedStates`; persisted settings provide omitted defaults and all effective values are checked against explicit API maxima.
+- `POST /api/optimizer/run` accepts bounded search options plus the shared run-specific village reset map; the server loads authoritative WorldData and does not persist the reset overrides.
 - The Worker never imports database code; the server loads WorldData before spawning it, and each run owns its search state/cache.
 - Worker bootstrap prefers a compiled `.js` entry and falls back to the repository's current TypeScript/ESM runtime; a post-build standalone worker smoke returned a profitable result.
 - Optimizer UI loads persisted optimization/player/world settings from the existing world endpoint and never sends WorldData to the optimizer API.
@@ -138,13 +138,13 @@ None for the current milestone.
 - Identical valid WorldData/options produce the same plan and material final state; only `statistics.elapsedMs` is wall-clock dependent.
 - Search limits (`periodDays`, `beamWidth`, `maxSteps`, and `maxExpandedStates`) bound runtime/state growth; the cache remains isolated per run/Worker.
 - A deliberately tiny exhaustive helper exists only in optimizer tests to compare maximum realized profit on safely bounded worlds; it is not exported to production.
-- Route logical uniqueness is `from + to`; reverse routes remain separate. Market logical uniqueness is `villageId + productId + side`, so Supply and Demand may coexist.
+- Route logical uniqueness is an unordered village pair; one record contains the forward duration and optional return duration. Market logical uniqueness is `villageId + productId + side`, so Supply and Demand may coexist.
 - Canvas route/market mutations call existing client APIs and reload authoritative WorldData only after server success; cancel never persists temporary interaction state.
 - Product palette filtering is local, drag payloads use `application/x-village-trade-product`, and only village nodes accept them.
 - Product palette mode is stored only in `localStorage` under `village-trade-product-palette-mode`; invalid values fall back to Images mode, and both modes use the same product-ID drag payload.
 - Product base-price precedence in Market Assignment is persisted same-side Market price, then matching Product base price, then an empty required price field; Supply and Demand drafts remain independent while the dialog is open.
 - Migration `004_product_base_prices.sql` adds nullable `base_supply_price` and `base_demand_price` columns without rebuilding or reseeding existing databases.
-- Route edge layout canonicalizes unordered village pairs and is independent of route array order; curve/label geometry is never persisted.
+- Route edge layout renders one direct bidirectional edge per persisted pair; handle and label geometry is never persisted.
 - Village nodes expose subtle fanned source/target handles on four sides; attachment sides recompute from current node positions while dragging, and persistence still occurs only through the existing position workflow.
 - Manual browser review covered World, Products, Villages, Routes, Markets, Simulation, Optimizer, and Database & Settings at 1440, 1024, 768, and 390 px; navigation, hierarchy, panels, controls, data readability, World canvas/palette integration, and page-level overflow were inspected.
 - The World canvas remains an intentionally pannable workspace at narrow widths; management data switches to compact labeled rows where needed instead of forcing page-level horizontal scrolling.
@@ -153,10 +153,16 @@ None for the current milestone.
 - The optimizer's primary objective is accumulated profit; continuous selling is only a tie-break preference.
 - Final architecture review confirmed UI → `POST /api/optimizer/run` → authoritative repository WorldData → isolated Worker → `runOptimizer` → `SimulationEngine` → result; browser code contains no optimizer search and the Worker imports no persistence/database modules.
 - Final replay/objective review is covered by freshly passing optimizer tests: material location, money, inventory/cost basis, time, village timers/reserves, market quantities, and realized profit replay; realized profit remains primary, continuous mode is tie-break only, unsold inventory is not realized profit, and no bonus/global-optimum claim exists.
-- Final verification: build without chunk warnings, 19 Vitest files/82 tests, lint, 8 Playwright E2E tests, and standalone Worker smoke passed. Automated verification used temporary SQLite/backup paths and did not target runtime data.
+- Prior release baseline verification passed before this contract revision; the latest results are recorded below and a separate final release-verification task remains.
+- Route persistence now uses one unordered village pair with required `travelTime` and optional `reverseTravelTime`; migration `005_bidirectional_routes_product_sequence.sql` merges legacy opposite records and preserves asymmetric times.
+- Village master data exports only the recurring `reset.afterReset`; legacy `reset.current` input is accepted and removed during WorldData normalization. Simulation and Optimizer receive current reset remaining per run without persistence.
+- Market quantities remain positive integer units in WorldData/SQLite. Both market editors derive decimal crates from `unitsPerCrate` and reject crate values that do not resolve to whole units; inventory capacity still uses ceiling crate rules.
+- Product create requests omit `id`; SQLite-backed IDs use monotonic `P000001` formatting while legacy IDs such as `MILK` remain unchanged and updateable.
+- Latest verification: build PASS, 20 Vitest files/89 tests PASS, lint PASS, and 4 isolated Playwright tests PASS. A final release verification is the next task.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
 | 2026-09-11 | This commit | PASS | PASS | PASS | PASS | Release-ready: 19 Vitest files/82 tests, 8 Playwright tests, Worker smoke, checklist/source review, and responsive inspection passed. |
+| 2026-09-12 | This commit | PASS | PASS | PASS | PASS | Contract revision: 20 Vitest files/89 tests and 4 revised isolated Playwright flows passed; final release review remains. |

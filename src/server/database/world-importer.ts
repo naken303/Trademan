@@ -68,8 +68,8 @@ export function importWorld(
           village.visual?.icon ?? null,
           village.visual?.image ?? null,
           village.initialReserveMoney,
-          village.reset.current.days,
-          village.reset.current.hours,
+          village.reset.afterReset.days,
+          village.reset.afterReset.hours,
           village.reset.afterReset.days,
           village.reset.afterReset.hours,
         );
@@ -110,9 +110,11 @@ export function importWorld(
             from_village_id,
             to_village_id,
             travel_days,
-            travel_hours
+            travel_hours,
+            reverse_travel_days,
+            reverse_travel_hours
           )
-          VALUES (?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
 
       for (const route of data.routes) {
@@ -122,6 +124,8 @@ export function importWorld(
           route.to,
           route.travelTime.days,
           route.travelTime.hours,
+          route.reverseTravelTime?.days ?? null,
+          route.reverseTravelTime?.hours ?? null,
         );
       }
 
@@ -148,6 +152,12 @@ export function importWorld(
           market.initialQuantity,
         );
       }
+
+      const nextGeneratedId = Math.max(1, ...data.products.flatMap((product) => {
+        const match = /^P(\d{6})$/.exec(product.id);
+        return match ? [Number(match[1]) + 1] : [];
+      }));
+      db.prepare("UPDATE product_id_sequence SET next_value = MAX(next_value, ?) WHERE id = 1").run(nextGeneratedId);
 
       db.prepare(`
         INSERT INTO world_settings (

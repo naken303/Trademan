@@ -40,11 +40,6 @@ function rowToVillage(
       row.initial_reserve_money,
 
     reset: {
-      current: {
-        days: row.reset_current_days,
-        hours: row.reset_current_hours,
-      },
-
       afterReset: {
         days: row.reset_after_days,
         hours: row.reset_after_hours,
@@ -135,8 +130,8 @@ export function createVillage(
     village.visual?.icon ?? null,
     village.visual?.image ?? null,
     village.initialReserveMoney,
-    village.reset.current.days,
-    village.reset.current.hours,
+    village.reset.afterReset.days,
+    village.reset.afterReset.hours,
     village.reset.afterReset.days,
     village.reset.afterReset.hours,
   );
@@ -170,8 +165,8 @@ export function updateVillage(
       village.visual?.icon ?? null,
       village.visual?.image ?? null,
       village.initialReserveMoney,
-      village.reset.current.days,
-      village.reset.current.hours,
+      village.reset.afterReset.days,
+      village.reset.afterReset.hours,
       village.reset.afterReset.days,
       village.reset.afterReset.hours,
       village.id,

@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import type { RunInitialization, WorldData } from "../../../shared/types";
+import { getWorld } from "../world/world-api";
 import type { SimulationMarket } from "./simulation-controller";
 import { useSimulationStore } from "./simulation-store";
 import "./SimulatorPage.css";
@@ -40,15 +42,33 @@ function TradeRow(props: TradeRowProps) {
 
 export function SimulatorPage() {
   const { snapshot, loading, error, initialize, travel, buy, sell, clearError } = useSimulationStore();
-  useEffect(() => { void initialize(); }, [initialize]);
+  const [world, setWorld] = useState<WorldData | null>(null);
+  const [resets, setResets] = useState<Record<string, { days: string; hours: string }>>({});
+  useEffect(() => { void getWorld().then((loaded) => {
+    setWorld(loaded);
+    setResets(Object.fromEntries(loaded.villages.map((village) => [village.id, {
+      days: String(village.reset.afterReset.days), hours: String(village.reset.afterReset.hours),
+    }])));
+  }); }, []);
 
-  if (loading && !snapshot) return <section className="simulation-page">Loading simulation...</section>;
-  if (!snapshot) return (
-    <section className="simulation-page"><h2>Simulation</h2>
-      <p className="simulation-error">{error ?? "Simulation is unavailable."}</p>
-      <button type="button" onClick={() => void initialize()}>Try again</button>
-    </section>
-  );
+  const start = () => {
+    if (!world) return;
+    const initialization: RunInitialization = { villageResetRemaining: Object.fromEntries(world.villages.map((village) => [village.id, {
+      days: Number(resets[village.id]?.days), hours: Number(resets[village.id]?.hours),
+    }])) };
+    void initialize(initialization);
+  };
+
+  if (!snapshot) return <section className="simulation-page"><h2>Simulation</h2>
+    {!world ? <p>Loading simulation setup...</p> : <><p>Set the current reset remaining for this run.</p>
+      <div className="simulation-card">{world.villages.map((village) => <fieldset key={village.id}><legend>{village.name}</legend>
+        <label>Current reset days<input type="number" min="0" step="1" value={resets[village.id]?.days ?? ""} onChange={(event) => setResets((current) => ({ ...current, [village.id]: { ...current[village.id], days: event.target.value } }))} /></label>
+        <label>Current reset hours<input type="number" min="0" max="23" step="1" value={resets[village.id]?.hours ?? ""} onChange={(event) => setResets((current) => ({ ...current, [village.id]: { ...current[village.id], hours: event.target.value } }))} /></label>
+      </fieldset>)}</div>
+      {error && <p className="simulation-error">{error}</p>}
+      <button type="button" disabled={loading} onClick={start}>{loading ? "Starting..." : "Start Simulation"}</button></>}
+  </section>;
+
 
   const inventoryByProduct = new Map(snapshot.state.player.inventory.map((item) => [item.productId, item.quantity]));
   const supplies = snapshot.markets.filter((item) => item.market.side === "supply");
@@ -63,7 +83,7 @@ export function SimulatorPage() {
   return (
     <section className="simulation-page">
       <header className="simulation-heading"><div><h2>Simulation</h2><p>Runtime changes stay inside this simulation session.</p></div>
-        <button type="button" className="secondary" onClick={() => void initialize()}>Restart from saved world</button></header>
+        <button type="button" className="secondary" onClick={start}>Restart with setup values</button></header>
       {error && <div className="simulation-error" role="alert"><span>{error}</span>
         <button type="button" onClick={clearError} aria-label="Dismiss error">×</button></div>}
       <div className="simulation-stats">

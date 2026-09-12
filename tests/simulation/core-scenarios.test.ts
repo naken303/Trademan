@@ -13,10 +13,12 @@ function routeWorld(routes: WorldData["routes"]): WorldData {
   const world = demoWorld();
   return { ...world, routes, markets: [] };
 }
+const demoReset = (world: WorldData, hours = 12) => ({ villageResetRemaining: Object.fromEntries(world.villages.map((village) => [village.id, { days: 0, hours }])) });
 
 describe("full core simulation scenarios", () => {
   it("preserves money, crates, reset time, reserve, realized profit, and partial cost basis", () => {
-    const controller = new SimulationController(demoWorld());
+    const world = demoWorld();
+    const controller = new SimulationController(world, demoReset(world));
     const initial = controller.getSnapshot();
     expect(initial.currentVillage.id).toBe("A");
     expect(initial.state.player.money).toBe(1000);
@@ -47,10 +49,10 @@ describe("full core simulation scenarios", () => {
       ...world,
       villages: world.villages.map((village) => ({
         ...village,
-        reset: { current: { days: 0, hours: 2 }, afterReset: { days: 1, hours: 0 } },
+        reset: { afterReset: { days: 1, hours: 0 } },
       })),
     };
-    const controller = new SimulationController(resetWorld);
+    const controller = new SimulationController(resetWorld, demoReset(resetWorld, 2));
     controller.buy("VEG", 2);
     const arrived = controller.travel("C");
     expect(arrived.state.villages.A.money).toBe(1000);
@@ -60,16 +62,17 @@ describe("full core simulation scenarios", () => {
   });
 
   it("prefers direct routes, falls back to reverse routes, and honors explicit reverse overrides", () => {
-    const fallback = new SimulationController(routeWorld([
+    const fallbackWorld = routeWorld([
       { id: "A-B", from: "A", to: "B", travelTime: { days: 0, hours: 2 } },
-    ]));
+    ]);
+    const fallback = new SimulationController(fallbackWorld, demoReset(fallbackWorld));
     fallback.travel("B");
     expect(fallback.travel("A").state.time).toEqual({ day: 1, hour: 4 });
 
-    const explicit = new SimulationController(routeWorld([
-      { id: "A-B", from: "A", to: "B", travelTime: { days: 0, hours: 2 } },
-      { id: "B-A", from: "B", to: "A", travelTime: { days: 0, hours: 5 } },
-    ]));
+    const explicitWorld = routeWorld([
+      { id: "A-B", from: "A", to: "B", travelTime: { days: 0, hours: 2 }, reverseTravelTime: { days: 0, hours: 5 } },
+    ]);
+    const explicit = new SimulationController(explicitWorld, demoReset(explicitWorld));
     expect(explicit.travel("B").state.time).toEqual({ day: 1, hour: 2 });
     expect(explicit.travel("A").state.time).toEqual({ day: 1, hour: 7 });
   });

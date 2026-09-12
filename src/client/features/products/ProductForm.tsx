@@ -6,14 +6,13 @@ interface ProductFormProps {
   product?: Product;
   loading: boolean;
   onSubmit: (
-    product: Product,
+    product: Omit<Product, "id">,
     imageFile?: File,
   ) => Promise<void>;
   onCancel: () => void;
 }
 
 interface ProductFormState {
-  id: string;
   name: string;
   category: string;
   unitsPerCrate: string;
@@ -25,7 +24,6 @@ function createInitialState(
   product?: Product,
 ): ProductFormState {
   return {
-    id: product?.id ?? "",
     name: product?.name ?? "",
     category: product?.category ?? "",
     unitsPerCrate: product?.unitsPerCrate
@@ -116,7 +114,6 @@ export function ProductForm({
   ) {
     event.preventDefault();
 
-    const id = form.id.trim();
     const name = form.name.trim();
     const category = form.category.trim();
 
@@ -129,13 +126,6 @@ export function ProductForm({
     const baseDemandPrice = form.baseDemandPrice === ""
       ? undefined
       : Number(form.baseDemandPrice);
-
-    if (!id) {
-      setValidationError(
-        "Product ID is required.",
-      );
-      return;
-    }
 
     if (!name) {
       setValidationError(
@@ -166,8 +156,7 @@ export function ProductForm({
 
     setValidationError(null);
 
-    const nextProduct: Product = {
-      id,
+    const nextProduct: Omit<Product, "id"> = {
       name,
       ...(category
         ? {
@@ -201,23 +190,7 @@ export function ProductForm({
       )}
 
       <label>
-        <div>Product ID</div>
-
-        <input
-          value={form.id}
-          onChange={(event) =>
-            updateField(
-              "id",
-              event.target.value,
-            )
-          }
-          disabled={isEditing || loading}
-          placeholder="e.g. MILK"
-        />
-      </label>
-
-      <label>
-        <div>Name</div>
+        <div>Product Name</div>
 
         <input
           value={form.name}
@@ -249,7 +222,7 @@ export function ProductForm({
       </label>
 
       <label>
-        <div>Units per crate</div>
+        <div>Units per Crate</div>
 
         <input
           type="number"
@@ -267,7 +240,7 @@ export function ProductForm({
       </label>
 
       <label>
-        <div>Base Supply Price</div>
+        <div>Supply Base Price</div>
         <input
           type="number"
           min="0.01"
@@ -281,7 +254,7 @@ export function ProductForm({
       </label>
 
       <label>
-        <div>Base Demand Price</div>
+        <div>Demand Base Price</div>
         <input
           type="number"
           min="0.01"

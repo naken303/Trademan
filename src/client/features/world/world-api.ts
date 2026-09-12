@@ -4,6 +4,7 @@ import type {
   WorldData,
 } from "../../../shared/types";
 import { worldDataSchema } from "../../../shared/schemas";
+import { villageSchema } from "../../../shared/schemas/village.schema";
 import { z } from "zod";
 
 const API_BASE = "/api/world";
@@ -84,7 +85,7 @@ export async function updateVillagePosition(
     },
   );
 
-  return parseResponse<Village>(response);
+  return villageSchema.parse(await parseResponse<unknown>(response));
 }
 
 export async function createVillage(
@@ -101,7 +102,7 @@ export async function createVillage(
     },
   );
 
-  return parseResponse<Village>(response);
+  return villageSchema.parse(await parseResponse<unknown>(response));
 }
 
 export async function updateVillage(
@@ -119,7 +120,7 @@ export async function updateVillage(
     },
   );
 
-  return parseResponse<Village>(response);
+  return villageSchema.parse(await parseResponse<unknown>(response));
 }
 
 export async function deleteVillage(

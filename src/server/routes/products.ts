@@ -5,7 +5,7 @@ import fs from "node:fs";
 
 import { productSchema } from "../../shared/schemas";
 import {
-  createProduct,
+  createProductWithGeneratedId,
   deleteProduct,
   getAllProducts,
   getProductById,
@@ -134,17 +134,9 @@ productsRouter.get("/:id", (req, res) => {
 
 productsRouter.post("/", (req, res) => {
   try {
-    const product = productSchema.parse(req.body);
-
-    if (getProductById(product.id)) {
-      res.status(409).json({
-        error: `Product already exists: ${product.id}`,
-      });
-
-      return;
-    }
-
-    createProduct(product);
+    const product = createProductWithGeneratedId(
+      productSchema.omit({ id: true }).parse(req.body),
+    );
 
     res.status(201).json(product);
   } catch (error) {

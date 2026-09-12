@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from "react";
 import { marketSchema, routeInputSchema } from "../../../shared/schemas";
 import type { Market, Product, Route, WorldData } from "../../../shared/types";
+import { cratesToUnits, unitsToCrates } from "../../../domain/market";
 import {
   getMarketAssignmentDraft,
   normalizeProductPaletteMode,
@@ -17,7 +18,7 @@ export function ProductPalette({ products, onDragState }: { products: Product[];
   const [mode, setMode] = useState<ProductPaletteMode>(() =>
     normalizeProductPaletteMode(typeof window === "undefined" ? null : window.localStorage.getItem(PRODUCT_PALETTE_MODE_KEY)),
   );
-  const filtered = products.filter((product) => `${product.name} ${product.id}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const filtered = products.filter((product) => product.name.toLowerCase().includes(query.trim().toLowerCase()));
   const changeMode = (next: ProductPaletteMode) => {
     setMode(next);
     window.localStorage.setItem(PRODUCT_PALETTE_MODE_KEY, next);
@@ -30,10 +31,10 @@ export function ProductPalette({ products, onDragState }: { products: Product[];
     <button type="button" className={mode === "images" ? "active" : ""} aria-label="Show product images" aria-pressed={mode === "images"} onClick={() => changeMode("images")}>Images</button>
     <button type="button" className={mode === "details" ? "active" : ""} aria-label="Show product details" aria-pressed={mode === "details"} onClick={() => changeMode("details")}>Details</button>
   </div></div>
-    <label>Search products<input type="search" placeholder="Name or product ID" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
-    <div className="product-palette-list">{filtered.map((product) => { const image = imageUrl(product); return <article key={product.id} draggable tabIndex={0} title={product.name} aria-label={`${product.name} (${product.id})`} data-testid={`palette-product-${product.id}`} onDragStart={(event) => beginDrag(event, product.id)} onDragEnd={() => onDragState(false)}>
+    <label>Search products<input type="search" placeholder="Product name" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
+    <div className="product-palette-list">{filtered.map((product) => { const image = imageUrl(product); return <article key={product.id} draggable tabIndex={0} title={product.name} aria-label={product.name} data-testid={`palette-product-${product.id}`} onDragStart={(event) => beginDrag(event, product.id)} onDragEnd={() => onDragState(false)}>
       {image ? <img src={image} alt="" draggable={false} /> : <span className="product-fallback" aria-hidden="true">{mode === "images" ? product.name.slice(0, 2).toUpperCase() : product.name[0]?.toUpperCase()}</span>}
-      {mode === "details" && <div className="palette-product-details"><strong>{product.name}</strong><small>{product.id}</small><small>S: {product.baseSupplyPrice ?? "—"} · D: {product.baseDemandPrice ?? "—"}</small></div>}
+      {mode === "details" && <div className="palette-product-details"><strong>{product.name}</strong><small>S: {product.baseSupplyPrice ?? "—"} · D: {product.baseDemandPrice ?? "—"}</small></div>}
     </article>; })}
       {filtered.length === 0 && <p className="palette-empty">No products match your search.</p>}</div>
   </aside>;
@@ -49,14 +50,19 @@ function Modal({ title, children, onCancel }: { title: string; children: React.R
 
 export function RouteDialog({ world, from, to, existing, onCancel, onSave }: { world: WorldData; from: string; to: string; existing?: Route; onCancel: () => void; onSave: (input: Omit<Route, "id">, existing?: Route) => Promise<void> }) {
   const [days, setDays] = useState(String(existing?.travelTime.days ?? 0)); const [hours, setHours] = useState(String(existing?.travelTime.hours ?? 1));
+  const [differentReturn, setDifferentReturn] = useState(existing?.reverseTravelTime !== undefined);
+  const [returnDays, setReturnDays] = useState(String(existing?.reverseTravelTime?.days ?? 0));
+  const [returnHours, setReturnHours] = useState(String(existing?.reverseTravelTime?.hours ?? 1));
   const [error, setError] = useState(""); const [saving, setSaving] = useState(false);
   const village = (id: string) => world.villages.find((item) => item.id === id)?.name ?? id;
-  async function submit(event: FormEvent) { event.preventDefault(); const parsed = routeInputSchema.safeParse({ from, to, travelTime: { days: Number(days), hours: Number(hours) } });
+  async function submit(event: FormEvent) { event.preventDefault(); const parsed = routeInputSchema.safeParse({ from, to, travelTime: { days: Number(days), hours: Number(hours) }, ...(differentReturn ? { reverseTravelTime: { days: Number(returnDays), hours: Number(returnHours) } } : {}) });
     if (!parsed.success) { setError(parsed.error.issues[0]?.message ?? "Invalid route"); return; }
     setSaving(true); setError(""); try { await onSave(parsed.data, existing); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save route"); } finally { setSaving(false); }
   }
-  return <Modal title={existing ? "Edit Route" : "Create Route"} onCancel={onCancel}><p className="dialog-context"><strong>{village(from)}</strong><span>→</span><strong>{village(to)}</strong></p>
-    <form onSubmit={submit}><div className="dialog-fields"><label>Days<input aria-label="Route days" type="number" min="0" step="1" value={days} onChange={(event) => setDays(event.target.value)} /></label><label>Hours<input aria-label="Route hours" type="number" min="0" max="23" step="1" value={hours} onChange={(event) => setHours(event.target.value)} /></label></div>
+  return <Modal title={existing ? "Edit Route" : "Create Route"} onCancel={onCancel}><p className="dialog-context"><strong>{village(from)}</strong><span>↔</span><strong>{village(to)}</strong></p>
+    <form onSubmit={submit}><div className="dialog-fields"><label>Forward days<input aria-label="Route days" type="number" min="0" step="1" value={days} onChange={(event) => setDays(event.target.value)} /></label><label>Forward hours<input aria-label="Route hours" type="number" min="0" max="23" step="1" value={hours} onChange={(event) => setHours(event.target.value)} /></label></div>
+      <label><input type="checkbox" checked={differentReturn} onChange={(event) => setDifferentReturn(event.target.checked)} /> Use different return travel time</label>
+      {differentReturn && <div className="dialog-fields"><label>Return days<input type="number" min="0" step="1" value={returnDays} onChange={(event) => setReturnDays(event.target.value)} /></label><label>Return hours<input type="number" min="0" max="23" step="1" value={returnHours} onChange={(event) => setReturnHours(event.target.value)} /></label></div>}
       {error && <div className="dialog-error" role="alert">{error}</div>}<div className="dialog-actions"><button type="button" onClick={onCancel} disabled={saving}>Cancel</button><button type="submit" disabled={saving}>{saving ? "Saving..." : existing ? "Save Changes" : "Create Route"}</button></div></form></Modal>;
 }
 
@@ -72,6 +78,13 @@ export function MarketAssignmentDialog({ world, villageId, productId, onCancel, 
   if (!product || !village) return <Modal title="Market unavailable" onCancel={onCancel}><div className="dialog-error">The selected product or village no longer exists.</div><div className="dialog-actions"><button type="button" onClick={onCancel}>Close</button></div></Modal>;
   function changeSide(next: Market["side"]) { setSide(next); setError(""); }
   function updateDraft(field: "price" | "quantity", value: string) { setDrafts((current) => ({ ...current, [side]: { ...current[side], [field]: value } })); }
+  const crateQuantity = draft.quantity && Number(draft.quantity) > 0
+    ? String(unitsToCrates(Number(draft.quantity), product!.unitsPerCrate)) : "";
+  function updateCrates(value: string) {
+    if (value === "") { updateDraft("quantity", ""); return; }
+    try { updateDraft("quantity", String(cratesToUnits(Number(value), product!.unitsPerCrate))); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Invalid crate quantity"); updateDraft("quantity", ""); }
+  }
   async function submit(event: FormEvent) { event.preventDefault(); const candidate = { id: existing?.id ?? "new", villageId, productId, side, unitPrice: Number(draft.price), initialQuantity: Number(draft.quantity) }; const parsed = marketSchema.safeParse(candidate);
     if (!parsed.success) { setError(parsed.error.issues[0]?.message ?? "Invalid market entry"); return; }
     setSaving(true); setError(""); try { const { id: _id, ...input } = parsed.data; void _id; await onSave(input, existing); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save market"); } finally { setSaving(false); }
@@ -79,7 +92,7 @@ export function MarketAssignmentDialog({ world, villageId, productId, onCancel, 
   const image = imageUrl(product); return <Modal title={existing ? `Edit ${product.name} ${side === "supply" ? "Supply" : "Demand"}` : "Add Product to Village"} onCancel={onCancel}>
     <div className="dialog-product">{image ? <img src={image} alt="" /> : <span className="product-fallback">{product.name[0]?.toUpperCase()}</span>}<div><strong>{product.name}</strong><small>{village.name}</small></div></div>
     <form onSubmit={submit}><fieldset><legend>Market type</legend><label><input type="radio" name="market-side" checked={side === "supply"} onChange={() => changeSide("supply")} /> Supply</label><label><input type="radio" name="market-side" checked={side === "demand"} onChange={() => changeSide("demand")} /> Demand</label></fieldset>
-      <div className="dialog-fields"><label>Unit price<input aria-label="Unit price" type="number" min="0.01" step="any" value={draft.price} onChange={(event) => updateDraft("price", event.target.value)} /></label><label>Quantity (units)<input aria-label="Quantity (units)" type="number" min="1" step="1" value={draft.quantity} onChange={(event) => updateDraft("quantity", event.target.value)} /></label></div>
+      <div className="dialog-fields"><label>Unit price<input aria-label="Unit price" type="number" min="0.01" step="any" value={draft.price} onChange={(event) => updateDraft("price", event.target.value)} /></label><label>Quantity (Units)<input aria-label="Quantity (Units)" type="number" min="1" step="1" value={draft.quantity} onChange={(event) => updateDraft("quantity", event.target.value)} /></label><label>Quantity (Crates)<input aria-label="Quantity (Crates)" type="number" min="0.000001" step="any" value={crateQuantity} onChange={(event) => updateCrates(event.target.value)} /></label></div>
       {existing && <p className="dialog-note">This {side} entry already exists. Saving will update it instead of creating a duplicate.</p>}{error && <div className="dialog-error" role="alert">{error}</div>}
       <div className="dialog-actions"><button type="button" onClick={onCancel} disabled={saving}>Cancel</button><button type="submit" disabled={saving}>{saving ? "Saving..." : existing ? "Save Changes" : "Add"}</button></div></form></Modal>;
 }

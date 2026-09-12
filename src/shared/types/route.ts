@@ -5,4 +5,5 @@ export interface Route {
   from: string;
   to: string;
   travelTime: Duration;
+  reverseTravelTime?: Duration;
 }

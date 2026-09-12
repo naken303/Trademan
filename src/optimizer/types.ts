@@ -1,4 +1,4 @@
-import type { SimulationState, WorldData } from "../shared/types";
+import type { Duration, SimulationState, WorldData } from "../shared/types";
 
 export interface OptimizerInput {
   world: WorldData;
@@ -26,6 +26,7 @@ export interface OptimizerSearchOptions {
   beamWidth?: number;
   maxSteps?: number;
   maxExpandedStates?: number;
+  villageResetRemaining?: Record<string, Duration>;
 }
 
 export interface ResolvedOptimizerSearchOptions {

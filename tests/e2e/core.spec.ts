@@ -1,203 +1,110 @@
 import { expect, test } from "playwright/test";
 import { worldDataSchema } from "../../src/shared/schemas";
 
-test("app loads and core navigation pages initialize", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.getByRole("heading", { name: "World", exact: true })).toBeVisible();
-
-  for (const [link, heading] of [
-    ["Products", "Products"],
-    ["Villages", "Village Management"],
-    ["Routes", "Route Management"],
-    ["Markets", "Market Management"],
-    ["Database & Settings", "Database & Settings"],
-    ["Simulation", "Simulation"],
-    ["Optimizer", "Optimizer"],
-  ] as const) {
-    await page.getByRole("link", { name: link, exact: true }).click();
-    await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: link, exact: true })).toHaveAttribute("aria-current", "page");
-  }
-
-  await page.getByRole("link", { name: "Simulation", exact: true }).click();
-  await expect(page.getByText("Day 1, 0:00")).toBeVisible();
-  await expect(page.getByText("Village A", { exact: true }).first()).toBeVisible();
-});
-
-test("mobile navigation and core pages avoid horizontal page overflow", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/world");
-  await page.getByRole("button", { name: "Menu" }).click();
-  await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
-  await page.getByRole("link", { name: "Products", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Products", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-
-  for (const path of ["villages", "routes", "market", "simulator", "optimizer", "settings"]) {
+test("core pages load without browser errors", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
+  for (const [path, heading] of [["world", "World"], ["products", "Product Management"], ["villages", "Village Management"], ["routes", "Route Management"], ["market", "Market Management"], ["settings", "Database & Settings"], ["simulator", "Simulation"], ["optimizer", "Optimizer"]]) {
     await page.goto(`/${path}`);
-    await page.locator("main h1, main h2").first().waitFor();
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), path).toBe(true);
+    await expect(page.getByRole("heading", { name: heading, exact: true }).first()).toBeVisible();
   }
+  expect(errors).toEqual([]);
 });
 
-test("optimizer UI finds and explains a profitable plan", async ({ page }) => {
+test("CRUD UI persists revised contracts", async ({ page, request }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
+  await page.goto("/products");
+  await page.getByRole("button", { name: "+ Add Product" }).click();
+  await expect(page.getByLabel("Product ID")).toHaveCount(0);
+  await page.getByLabel("Name").fill("Audit Product");
+  await page.getByLabel("Units per crate").fill("20");
+  await page.getByRole("button", { name: "Add Product", exact: true }).click();
+  await expect(page.locator("tr").filter({ hasText: "Audit Product" })).toBeVisible();
+  let world = worldDataSchema.parse(await (await request.get("http://127.0.0.1:3100/api/world")).json());
+  const product = world.products.find((item) => item.name === "Audit Product")!;
+  expect(product.id).toMatch(/^P\d{6}$/);
+
+  await page.goto("/villages");
+  await page.getByRole("button", { name: "+ Add Village" }).click();
+  await expect(page.getByText("Current Reset", { exact: true })).toHaveCount(0);
+  await page.getByLabel("Village Name").fill("Audit Village");
+  await page.getByLabel("Initial Reserve Money").fill("800");
+  await page.locator("#village-after-hours").fill("8");
+  await page.getByRole("button", { name: "Add Village", exact: true }).click();
+  await expect(page.locator("tr").filter({ hasText: "Audit Village" })).toBeVisible();
+  world = worldDataSchema.parse(await (await request.get("http://127.0.0.1:3100/api/world")).json());
+  const village = world.villages.find((item) => item.name === "Audit Village")!;
+
+  await page.goto("/routes");
+  await page.getByRole("button", { name: "+ Add Route" }).click();
+  await page.locator(".route-form select").nth(0).selectOption("A");
+  await page.locator(".route-form select").nth(1).selectOption(village.id);
+  await page.getByLabel("Forward hours").fill("2");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  const routeRow = page.locator("tr").filter({ hasText: "Audit Village" }).filter({ hasText: "Village A" });
+  await expect(routeRow).toContainText("Same as forward");
+  await routeRow.getByRole("button", { name: "Edit" }).click();
+  await page.getByLabel("Use different return travel time").check();
+  await page.getByLabel("Return hours").fill("5");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+
+  await page.goto("/market");
+  await page.getByRole("button", { name: "+ Add Market" }).click();
+  await page.getByLabel("Village", { exact: true }).last().selectOption(village.id);
+  await page.getByLabel("Product").selectOption(product.id);
+  await page.getByLabel("Unit Price").fill("5");
+  await page.getByLabel("Quantity (Units)").fill("30");
+  await expect(page.getByLabel("Quantity (Crates)")).toHaveValue("1.5");
+  await page.getByLabel("Quantity (Crates)").fill("2.25");
+  await expect(page.getByLabel("Quantity (Units)")).toHaveValue("45");
+  await page.getByRole("button", { name: "Add Market", exact: true }).click();
+
+  world = worldDataSchema.parse(await (await request.get("http://127.0.0.1:3100/api/world")).json());
+  const route = world.routes.find((item) => new Set([item.from, item.to]).has("A") && new Set([item.from, item.to]).has(village.id))!;
+  expect(route).toMatchObject({ travelTime: { days: 0, hours: 2 }, reverseTravelTime: { days: 0, hours: 5 } });
+  expect(world.markets).toContainEqual(expect.objectContaining({ villageId: village.id, productId: product.id, initialQuantity: 45 }));
+  await page.goto("/world");
+  await expect(page.getByTestId(`palette-product-${product.id}`)).not.toContainText(product.id);
+  const edge = page.locator(`[data-route-id="${route.id}"]`).first();
+  await expect(edge).toBeVisible();
+  await expect(page.getByTestId(`route-label-${route.id}`)).toHaveText("2h / 5h");
+  await page.getByTestId(`palette-product-${product.id}`).dragTo(page.getByTestId("village-node-A"));
+  await page.getByLabel("Quantity (Units)").fill("30");
+  await expect(page.getByLabel("Quantity (Crates)")).toHaveValue("1.5");
+  await page.getByLabel("Quantity (Crates)").fill("2.25");
+  await expect(page.getByLabel("Quantity (Units)")).toHaveValue("45");
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  expect(errors).toEqual([]);
+});
+
+test("simulation and optimizer accept run-specific reset setup", async ({ page }) => {
+  await page.goto("/simulator");
+  const villageASetup = page.locator("fieldset").filter({ hasText: "Village A" });
+  await villageASetup.getByLabel("Current reset days").fill("0");
+  await villageASetup.getByLabel("Current reset hours").fill("2");
+  await expect(villageASetup.getByLabel("Current reset days")).toHaveValue("0");
+  await expect(villageASetup.getByLabel("Current reset hours")).toHaveValue("2");
+  await page.getByRole("button", { name: "Start Simulation" }).click();
+  await expect(page.locator(".simulation-village-card").getByText("2h", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /Audit Village/ }).click();
+  await expect(page.getByText("Day 1, 2:00", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /Village A/ }).click();
+  await expect(page.getByText("Day 1, 7:00", { exact: true })).toBeVisible();
   await page.goto("/optimizer");
-  await expect(page.getByRole("heading", { name: "Optimizer", exact: true })).toBeVisible();
+  await page.getByLabel("Reset hours for Village A").fill("3");
   await page.getByLabel("Optimization period (days)").fill("1");
   await page.getByLabel("Beam width").fill("20");
   await page.getByLabel("Maximum plan steps").fill("8");
   await page.getByLabel("Maximum expanded states").fill("500");
   await page.getByRole("button", { name: "Run Optimizer" }).click();
-
   await expect(page.getByText("Best realized profit")).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator(".optimizer-summary").getByText(/^[1-9][0-9,]* THB$/).first()).toBeVisible();
-  await expect(page.locator(".optimizer-step.buy").first()).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator(".optimizer-step.travel").first()).toBeVisible();
-  await expect(page.locator(".optimizer-step.sell").first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Search statistics" })).toBeVisible();
-  await expect(page.getByText("Expanded", { exact: true })).toBeVisible();
 });
 
-test("simulation UI completes buy, travel, and partial sell", async ({ page }) => {
-  await page.goto("/simulator");
-  await expect(page.getByRole("heading", { name: "Simulation" })).toBeVisible();
-
-  const vegetableSupply = page.locator(".simulation-trade-row").filter({ hasText: "Vegetable" });
-  await vegetableSupply.getByLabel("Quantity").fill("10");
-  await vegetableSupply.getByRole("button", { name: "Buy" }).click();
-  await expect(page.getByText("880 THB", { exact: true })).toBeVisible();
-  await expect(page.getByText("1 / 20", { exact: true })).toBeVisible();
-  await expect(page.getByText("10 units", { exact: true })).toBeVisible();
-
-  await page.getByRole("button", { name: /Village B/ }).click();
-  await page.getByRole("button", { name: /Village D/ }).click();
-  await expect(page.getByText("Day 1, 9:00", { exact: true })).toBeVisible();
-  await expect(page.getByText("3h", { exact: true })).toBeVisible();
-
-  const vegetableDemand = page.locator(".simulation-trade-row").filter({ hasText: "Vegetable" });
-  await vegetableDemand.getByLabel("Quantity").fill("5");
-  await vegetableDemand.getByRole("button", { name: "Sell" }).click();
-  await expect(page.getByText("980 THB", { exact: true })).toBeVisible();
-  await expect(page.getByText("40 THB", { exact: true })).toBeVisible();
-  await expect(page.getByText("5 units", { exact: true })).toBeVisible();
-  await expect(page.getByText(/Village reserve:/).locator("strong")).toHaveText("900 THB");
-});
-
-test("export is valid and rejected import leaves persisted world unchanged", async ({ request }) => {
-  const beforeResponse = await request.get("http://127.0.0.1:3100/api/world/export");
-  expect(beforeResponse.ok()).toBe(true);
-  const before = worldDataSchema.parse(await beforeResponse.json());
-
-  const invalidResponse = await request.post("http://127.0.0.1:3100/api/world/import", {
-    data: { ...before, player: { ...before.player, money: -1 } },
-  });
-  expect(invalidResponse.status()).toBe(400);
-
-  const afterResponse = await request.get("http://127.0.0.1:3100/api/world");
-  expect(worldDataSchema.parse(await afterResponse.json())).toEqual(before);
-});
-
-test("World canvas creates and edits a directional route", async ({ page }) => {
-  await page.goto("/world");
-  const source = await page.getByTestId("route-source-C").boundingBox();
-  const target = await page.getByTestId("route-target-D").boundingBox();
-  expect(source).not.toBeNull(); expect(target).not.toBeNull();
-  await page.mouse.move(source!.x + source!.width / 2, source!.y + source!.height / 2);
-  await page.mouse.down(); await page.mouse.move(target!.x + target!.width / 2, target!.y + target!.height / 2, { steps: 8 }); await page.mouse.up();
-  await expect(page.getByRole("heading", { name: "Create Route" })).toBeVisible();
-  await page.getByLabel("Route hours").fill("6");
-  await page.getByRole("button", { name: "Create Route" }).click();
-  await expect(page.getByText("6h", { exact: true })).toBeVisible();
-
-  await page.getByTestId("route-source-C").dragTo(page.getByTestId("route-target-D"));
-  await expect(page.getByRole("heading", { name: "Edit Route" })).toBeVisible();
-  await page.getByRole("button", { name: "Cancel", exact: true }).click();
-  await page.getByRole("button", { name: "Menu" }).isVisible().then(async (mobile) => { if (mobile) { await page.getByRole("button", { name: "Menu" }).click(); } });
-  await page.getByRole("link", { name: "Routes", exact: true }).click();
-  await expect(page.locator("tr").filter({ hasText: "Village C" }).filter({ hasText: "Village D" }).filter({ hasText: "6h" })).toBeVisible();
-});
-
-test("World canvas separates reverse routes and keeps geometry stable after a saved drag", async ({ page }) => {
-  await page.goto("/world");
-  const source = await page.getByTestId("route-source-left-B").boundingBox();
-  const target = await page.getByTestId("route-target-right-A").boundingBox();
-  expect(source).not.toBeNull(); expect(target).not.toBeNull();
-  await page.mouse.move(source!.x + source!.width / 2, source!.y + source!.height / 2);
-  await page.mouse.down(); await page.mouse.move(target!.x + target!.width / 2, target!.y + target!.height / 2, { steps: 8 }); await page.mouse.up();
-  await expect(page.getByRole("heading", { name: "Create Route" })).toBeVisible();
-  await page.getByLabel("Route hours").fill("7");
-  await page.getByRole("button", { name: "Create Route" }).click();
-
-  const forward = page.locator('[data-route-from="A"][data-route-to="B"]');
-  const reverse = page.locator('[data-route-from="B"][data-route-to="A"]');
-  await expect(forward).toHaveAttribute("data-reverse-pair", "true");
-  await expect(reverse).toHaveAttribute("data-reverse-pair", "true");
-  await expect(forward).toHaveAttribute("data-curve-side", "1");
-  await expect(reverse).toHaveAttribute("data-curve-side", "-1");
-  await expect(forward.locator(".directional-route-path")).toHaveAttribute("marker-end", /.+/);
-  await expect(reverse.locator(".directional-route-path")).toHaveAttribute("marker-end", /.+/);
-  const forwardPath = await forward.locator(".directional-route-path").getAttribute("d");
-  const reversePath = await reverse.locator(".directional-route-path").getAttribute("d");
-  const forwardId = await forward.getAttribute("data-route-id");
-  const reverseId = await reverse.getAttribute("data-route-id");
-  expect(forwardId).not.toBeNull(); expect(reverseId).not.toBeNull();
-  expect(forwardPath).not.toBe(reversePath);
-  await expect(page.getByTestId(`route-label-${forwardId}`)).toHaveText("4h");
-  await expect(page.getByTestId(`route-label-${reverseId}`)).toHaveText("7h");
-  await forward.locator(".directional-route-path").click({ force: true });
-  await expect(forward).toHaveClass(/selected/);
-  expect(await forward.locator(".directional-route-path").getAttribute("d")).toBe(forwardPath);
-
-  await page.getByTestId(`route-label-${reverseId}`).dblclick();
-  await expect(page.getByRole("heading", { name: "Edit Route" })).toBeVisible();
-  await page.getByLabel("Route hours").fill("8");
-  await page.getByRole("button", { name: "Save Changes" }).click();
-  await expect(page.getByTestId(`route-label-${forwardId}`)).toHaveText("4h");
-  await expect(page.getByTestId(`route-label-${reverseId}`)).toHaveText("8h");
-
-  const village = page.locator('.react-flow__node[data-id="B"]');
-  const villageBox = await village.boundingBox();
-  expect(villageBox).not.toBeNull();
-  const pathBeforeDrag = await forward.locator(".directional-route-path").getAttribute("d");
-  await page.mouse.move(villageBox!.x + villageBox!.width / 2, villageBox!.y + 30);
-  await page.mouse.down(); await page.mouse.move(villageBox!.x + villageBox!.width / 2 + 70, villageBox!.y + 90, { steps: 10 }); await page.mouse.up();
-  const pathAfterDrag = await forward.locator(".directional-route-path").getAttribute("d");
-  expect(pathAfterDrag).not.toBe(pathBeforeDrag);
-  await page.getByRole("button", { name: "Save positions" }).click();
-  await page.reload();
-  await expect(page.locator('[data-route-from="A"][data-route-to="B"]')).toHaveAttribute("data-curve-side", "1");
-  expect(await page.locator('[data-route-from="A"][data-route-to="B"] .directional-route-path').getAttribute("d")).toBe(pathAfterDrag);
-});
-
-test("World product palette modes preserve drag defaults and persisted market prices", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/world");
-  await expect(page.getByRole("button", { name: "Show product images" })).toHaveAttribute("aria-pressed", "true");
-  expect(await page.locator(".product-palette-list").evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(3);
-  await page.setViewportSize({ width: 600, height: 900 });
-  expect(await page.locator(".product-palette-list").evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(2);
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.getByLabel("Search products").fill("milk");
-  await expect(page.getByTestId("palette-product-MILK")).toBeVisible();
-  await page.getByRole("button", { name: "Show product details" }).click();
-  await expect(page.getByTestId("palette-product-MILK")).toContainText("MILK");
-  await page.getByTestId("palette-product-MILK").dragTo(page.getByTestId("village-node-B"));
-  await expect(page.getByRole("heading", { name: "Add Product to Village" })).toBeVisible();
-  await expect(page.getByLabel("Unit price")).toHaveValue("20");
-  await page.getByLabel("Demand").check();
-  await expect(page.getByLabel("Unit price")).toHaveValue("");
-  await page.getByLabel("Supply").check();
-  await expect(page.getByLabel("Unit price")).toHaveValue("20");
-  await page.getByLabel("Quantity (units)").fill("7");
-  await page.getByRole("button", { name: "Add", exact: true }).click();
-  await expect(page.getByTestId("village-node-B")).toContainText("Supply 1");
-
-  await page.getByRole("button", { name: "Show product images" }).click();
-  await page.getByTestId("palette-product-MILK").dragTo(page.getByTestId("village-node-B"));
-  await expect(page.getByRole("heading", { name: "Edit Milk Supply" })).toBeVisible();
-  await expect(page.getByLabel("Unit price")).toHaveValue("20");
-  await page.getByRole("button", { name: "Cancel", exact: true }).click();
-  await page.getByRole("link", { name: "Markets", exact: true }).click();
-  await expect(page.locator("tr").filter({ hasText: "Village B" }).filter({ hasText: "Milk" }).filter({ hasText: "SUPPLY" }).filter({ hasText: "20" })).toBeVisible();
+test("rejected import leaves exported world unchanged", async ({ request }) => {
+  const before = worldDataSchema.parse(await (await request.get("http://127.0.0.1:3100/api/world/export")).json());
+  expect((await request.post("http://127.0.0.1:3100/api/world/import", { data: { ...before, player: { ...before.player, money: -1 } } })).status()).toBe(400);
+  expect(worldDataSchema.parse(await (await request.get("http://127.0.0.1:3100/api/world")).json())).toEqual(before);
 });

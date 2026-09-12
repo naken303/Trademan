@@ -1,8 +1,11 @@
 import type { Duration, Position } from "./common";
 
 export interface VillageReset {
-  current: Duration;
   afterReset: Duration;
+}
+
+export interface RunInitialization {
+  villageResetRemaining: Record<string, Duration>;
 }
 
 export interface VillageVisual {

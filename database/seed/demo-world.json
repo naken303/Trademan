@@ -63,10 +63,6 @@
       },
       "initialReserveMoney": 1000,
       "reset": {
-        "current": {
-          "days": 0,
-          "hours": 12
-        },
         "afterReset": {
           "days": 1,
           "hours": 2
@@ -85,10 +81,6 @@
       },
       "initialReserveMoney": 1000,
       "reset": {
-        "current": {
-          "days": 0,
-          "hours": 12
-        },
         "afterReset": {
           "days": 1,
           "hours": 2
@@ -107,10 +99,6 @@
       },
       "initialReserveMoney": 1000,
       "reset": {
-        "current": {
-          "days": 0,
-          "hours": 12
-        },
         "afterReset": {
           "days": 1,
           "hours": 2
@@ -129,10 +117,6 @@
       },
       "initialReserveMoney": 1000,
       "reset": {
-        "current": {
-          "days": 0,
-          "hours": 12
-        },
         "afterReset": {
           "days": 1,
           "hours": 2

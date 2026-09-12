@@ -5,11 +5,9 @@ export function findRoute(
   from: string,
   to: string,
 ): Route | undefined {
-  return routes.find(
-    (route) =>
-      route.from === from &&
-      route.to === to,
-  );
+  return routes.find((route) =>
+    (route.from === from && route.to === to) ||
+    (route.from === to && route.to === from));
 }
 
 export function getTravelTime(
@@ -17,17 +15,9 @@ export function getTravelTime(
   from: string,
   to: string,
 ) {
-  const directRoute = findRoute(routes, from, to);
-
-  if (directRoute) {
-    return directRoute.travelTime;
-  }
-
-  const reverseRoute = findRoute(
-    routes,
-    to,
-    from,
-  );
-
-  return reverseRoute?.travelTime;
+  const route = findRoute(routes, from, to);
+  if (!route) return undefined;
+  return route.from === from
+    ? route.travelTime
+    : route.reverseTravelTime ?? route.travelTime;
 }

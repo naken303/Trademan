@@ -1,4 +1,6 @@
 import type { Market } from "../../../shared/types";
+import { marketSchema } from "../../../shared/schemas";
+import { z } from "zod";
 
 const API_BASE = "/api/markets";
 
@@ -29,7 +31,7 @@ export async function getMarkets(): Promise<
 > {
   const response = await fetch(API_BASE);
 
-  return parseResponse<Market[]>(response);
+  return z.array(marketSchema).parse(await parseResponse<unknown>(response));
 }
 
 export async function getMarketById(
@@ -39,7 +41,7 @@ export async function getMarketById(
     `${API_BASE}/${encodeURIComponent(marketId)}`,
   );
 
-  return parseResponse<Market>(response);
+  return marketSchema.parse(await parseResponse<unknown>(response));
 }
 
 export async function createMarket(
@@ -53,7 +55,7 @@ export async function createMarket(
     body: JSON.stringify(market),
   });
 
-  return parseResponse<Market>(response);
+  return marketSchema.parse(await parseResponse<unknown>(response));
 }
 
 export async function updateMarket(
@@ -71,7 +73,7 @@ export async function updateMarket(
     },
   );
 
-  return parseResponse<Market>(response);
+  return marketSchema.parse(await parseResponse<unknown>(response));
 }
 
 export async function deleteMarket(

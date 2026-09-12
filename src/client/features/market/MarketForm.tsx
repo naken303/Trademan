@@ -5,6 +5,7 @@ import type {
   Product,
   Village,
 } from "../../../shared/types";
+import { cratesToUnits, unitsToCrates } from "../../../domain/market";
 
 interface MarketFormProps {
   villages: Village[];
@@ -20,6 +21,7 @@ interface FormState {
   side: "supply" | "demand";
   unitPrice: string;
   initialQuantity: string;
+  crateQuantity: string;
 }
 
 function createInitialForm(
@@ -37,6 +39,7 @@ function createInitialForm(
       market !== undefined && market !== null
         ? String(market.initialQuantity)
         : "",
+    crateQuantity: "",
   };
 }
 
@@ -52,6 +55,20 @@ export function MarketForm({
   );
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const selectedProduct = products.find((product) => product.id === form.productId);
+
+  function updateUnits(value: string) {
+    const units = Number(value);
+    updateField("initialQuantity", value);
+    updateField("crateQuantity", selectedProduct && Number.isInteger(units) && units > 0 ? String(unitsToCrates(units, selectedProduct.unitsPerCrate)) : "");
+  }
+
+  function updateCrates(value: string) {
+    updateField("crateQuantity", value);
+    if (!selectedProduct || value === "") return;
+    try { updateField("initialQuantity", String(cratesToUnits(Number(value), selectedProduct.unitsPerCrate))); }
+    catch { updateField("initialQuantity", ""); }
+  }
 
   function updateField<K extends keyof FormState>(
     field: K,
@@ -167,10 +184,7 @@ export function MarketForm({
           id="market-product"
           value={form.productId}
           onChange={(event) =>
-            updateField(
-              "productId",
-              event.target.value,
-            )
+            setForm((current) => ({ ...current, productId: event.target.value, initialQuantity: "", crateQuantity: "" }))
           }
         >
           <option value="">
@@ -182,7 +196,7 @@ export function MarketForm({
               key={product.id}
               value={product.id}
             >
-              {product.name} ({product.id})
+              {product.name}
             </option>
           ))}
         </select>
@@ -238,7 +252,7 @@ export function MarketForm({
 
       <div className="market-form-field">
         <label htmlFor="market-quantity">
-          Initial Quantity
+          Quantity (Units)
         </label>
 
         <input
@@ -247,15 +261,11 @@ export function MarketForm({
           min="1"
           step="1"
           value={form.initialQuantity}
-          onChange={(event) =>
-            updateField(
-              "initialQuantity",
-              event.target.value,
-            )
-          }
+          onChange={(event) => updateUnits(event.target.value)}
           placeholder="For example, 20"
         />
       </div>
+      <div className="market-form-field"><label htmlFor="market-crates">Quantity (Crates)</label><input id="market-crates" type="number" min="0.000001" step="any" value={form.crateQuantity || (selectedProduct && Number(form.initialQuantity) > 0 ? String(Number(form.initialQuantity) / selectedProduct.unitsPerCrate) : "")} onChange={(event) => updateCrates(event.target.value)} /></div>
 
       {error && (
         <div className="market-form-error">

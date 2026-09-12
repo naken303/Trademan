@@ -1,6 +1,7 @@
 import { getTravelTime } from "../../../domain/route";
-import type { Duration, Market, Product, SimulationState, Village, WorldData } from "../../../shared/types";
+import type { Duration, Market, Product, RunInitialization, SimulationState, Village, WorldData } from "../../../shared/types";
 import { createInitialSimulationState, SimulationEngine } from "../../../simulation";
+import { runInitializationSchema } from "../../../shared/schemas/village.schema";
 
 export interface SimulationDestination { village: Village; travelTime: Duration }
 export interface SimulationMarket { market: Market; product: Product; quantity: number }
@@ -21,10 +22,11 @@ export class SimulationController {
   private readonly world: WorldData;
   private readonly engine: SimulationEngine;
 
-  constructor(world: WorldData) {
+  constructor(world: WorldData, initialization: RunInitialization) {
     this.world = structuredClone(world);
+    const parsedInitialization = runInitializationSchema.parse(initialization);
     this.engine = new SimulationEngine(
-      createInitialSimulationState(this.world), this.world.products, this.world.routes,
+      createInitialSimulationState(this.world, parsedInitialization), this.world.products, this.world.routes,
       this.world.markets, this.world.player.inventoryCapacityCrates,
     );
   }

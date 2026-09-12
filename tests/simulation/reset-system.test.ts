@@ -42,8 +42,7 @@ describe("Village resets", () => {
       position: { x: 0, y: 0 },
       initialReserveMoney: 0,
       reset: {
-        current: { days: 0, hours: 0 },
-        afterReset: { days: 0, hours: 1 },
+        afterReset: { days: 0, hours: 0 },
       },
     });
 

@@ -151,3 +151,17 @@ export function deleteProduct(productId: string): void {
     throw new Error(`Product not found: ${productId}`);
   }
 }
+
+export function createProductWithGeneratedId(product: Omit<Product, "id">): Product {
+  return db.transaction(() => {
+    while (true) {
+      const row = db.prepare("SELECT next_value FROM product_id_sequence WHERE id = 1").get() as { next_value: number };
+      db.prepare("UPDATE product_id_sequence SET next_value = next_value + 1 WHERE id = 1").run();
+      const created = { ...product, id: `P${String(row.next_value).padStart(6, "0")}` };
+      if (!getProductById(created.id)) {
+        createProduct(created);
+        return created;
+      }
+    }
+  })();
+}

@@ -38,6 +38,31 @@ export const worldDataSchema = z.object({
 
   products: z.array(productSchema),
   villages: z.array(villageSchema),
-  routes: z.array(routeSchema),
+  routes: z.array(routeSchema).transform((routes) => {
+    const pairs = new Map<string, typeof routes[number]>();
+    for (const route of routes) {
+      const [from, to] = [route.from, route.to].sort();
+      const key = `${from}\u0000${to}`;
+      const existing = pairs.get(key);
+      if (!existing) {
+        pairs.set(key, route);
+      } else {
+        const forwardCandidate = existing.from === from ? existing : route;
+        const reverseCandidate = existing.from === to ? existing : route;
+        const forwardDuration = forwardCandidate.travelTime;
+        const reverseDuration = reverseCandidate.travelTime;
+        pairs.set(key, {
+          id: existing.from === from ? existing.id : route.id,
+          from,
+          to,
+          travelTime: forwardDuration,
+          ...(reverseDuration.days !== forwardDuration.days || reverseDuration.hours !== forwardDuration.hours
+            ? { reverseTravelTime: reverseDuration }
+            : {}),
+        });
+      }
+    }
+    return [...pairs.values()];
+  }),
   markets: z.array(marketSchema),
 });

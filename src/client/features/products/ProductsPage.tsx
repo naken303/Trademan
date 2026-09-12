@@ -90,23 +90,27 @@ export function ProductsPage() {
   }
 
   async function handleSubmit(
-    product: Product,
+    input: Omit<Product, "id">,
     imageFile?: File,
   ) {
     try {
       setPageError(null);
 
       if (editingProduct) {
-        await editProduct(product);
+        await editProduct({ ...input, id: editingProduct.id });
       } else {
-        await addProduct(product);
+        const created = await addProduct(input);
+        if (imageFile) {
+          setImageActionLoading(true);
+          await uploadProductImage(created.id, imageFile);
+        }
       }
 
-      if (imageFile) {
+      if (imageFile && editingProduct) {
         setImageActionLoading(true);
 
         await uploadProductImage(
-          product.id,
+          editingProduct.id,
           imageFile,
         );
       }
@@ -130,7 +134,7 @@ export function ProductsPage() {
     product: Product,
   ) {
     const confirmed = window.confirm(
-      `Delete product "${product.name}" (${product.id})?`,
+      `Delete product "${product.name}"?`,
     );
 
     if (!confirmed) {
@@ -246,17 +250,6 @@ export function ProductsPage() {
                       "1px solid #ccc",
                   }}
                 >
-                  ID
-                </th>
-
-                <th
-                  style={{
-                    textAlign: "left",
-                    padding: "8px",
-                    borderBottom:
-                      "1px solid #ccc",
-                  }}
-                >
                   Name
                 </th>
 
@@ -325,10 +318,6 @@ export function ProductsPage() {
                       ) : (
                         <span>-</span>
                       )}
-                    </td>
-
-                    <td data-label="ID">
-                      {product.id}
                     </td>
 
                     <td data-label="Name">

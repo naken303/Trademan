@@ -100,7 +100,11 @@ function actionKey(action: OptimizerAction): string {
 export function runOptimizer(world: WorldData, options: OptimizerSearchOptions = {}): OptimizerResult {
   const startedAt = performance.now();
   const resolved = resolveOptions(world, options);
-  const initialState = createInitialSimulationState(world);
+  const initialState = createInitialSimulationState(world, {
+    villageResetRemaining: options.villageResetRemaining ?? Object.fromEntries(
+      world.villages.map((village) => [village.id, village.reset.afterReset]),
+    ),
+  });
   const startHour = absoluteHour(initialState);
   const deadline = startHour + resolved.periodDays * 24;
   const initial: SearchNode = { state: initialState, plan: [], tradeActions: 0, firstProfitStep: null };

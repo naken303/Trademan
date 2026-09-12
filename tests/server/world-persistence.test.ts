@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import type { WorldData } from "../../src/shared/types";
+import { worldDataSchema } from "../../src/shared/schemas";
 import {
+  createProductWithGeneratedId,
   getWorld,
   importWorld,
   initializeDatabase,
@@ -31,7 +33,6 @@ function createWorld(): WorldData {
         visual: { icon: "tree", image: "assets/villages/a.png" },
         initialReserveMoney: 75,
         reset: {
-          current: { days: 0, hours: 2 },
           afterReset: { days: 1, hours: 0 },
         },
       },
@@ -42,7 +43,6 @@ function createWorld(): WorldData {
         visual: { icon: null, image: null },
         initialReserveMoney: 50,
         reset: {
-          current: { days: 0, hours: 2 },
           afterReset: { days: 1, hours: 0 },
         },
       },
@@ -59,6 +59,16 @@ describe("World persistence", () => {
 
     importWorld(world);
 
-    expect(getWorld()).toEqual(world);
+    expect(getWorld()).toEqual(worldDataSchema.parse(world));
+  });
+
+  it("advances generated Product IDs beyond imported generated IDs", () => {
+    initializeDatabase();
+    const world = createWorld();
+    world.products.push({ id: "P000042", name: "Imported", unitsPerCrate: 5 });
+
+    importWorld(world);
+
+    expect(createProductWithGeneratedId({ name: "Created later", unitsPerCrate: 5 }).id).toBe("P000043");
   });
 });

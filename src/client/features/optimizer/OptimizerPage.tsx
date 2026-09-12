@@ -56,25 +56,26 @@ export function OptimizerPage() {
   const [world, setWorld] = useState<WorldData | null>(null);
   const [values, setValues] = useState<FormValues | null>(null);
   const [result, setResult] = useState<OptimizerResult | null>(null);
+  const [resets, setResets] = useState<Record<string, { days: string; hours: string }>>({});
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
-    try { const loaded = await getWorld(); setWorld(loaded); setValues(initialForm(loaded)); setError(null); }
+    try { const loaded = await getWorld(); setWorld(loaded); setValues(initialForm(loaded)); setResets(Object.fromEntries(loaded.villages.map((village) => [village.id, { days: String(village.reset.afterReset.days), hours: String(village.reset.afterReset.hours) }]))); setError(null); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to load optimizer settings."); }
     finally { setLoading(false); }
   }
-  useEffect(() => { getWorld().then((loaded) => { setWorld(loaded); setValues(initialForm(loaded)); setError(null); })
+  useEffect(() => { getWorld().then((loaded) => { setWorld(loaded); setValues(initialForm(loaded)); setResets(Object.fromEntries(loaded.villages.map((village) => [village.id, { days: String(village.reset.afterReset.days), hours: String(village.reset.afterReset.hours) }]))); setError(null); })
     .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Unable to load optimizer settings."))
     .finally(() => setLoading(false)); }, []);
 
   const usedCrates = useMemo(() => result && world ? getInventoryCrates(result.finalState.player.inventory, world.products) : 0, [result, world]);
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!values) return;
+    if (!values || !world) return;
     try {
-      const options = validate(values);
+      const options = { ...validate(values), villageResetRemaining: Object.fromEntries(world.villages.map((village) => [village.id, { days: Number(resets[village.id]?.days), hours: Number(resets[village.id]?.hours) }])) };
       setRunning(true); setError(null); setResult(null);
       setResult(await runOptimizer(options));
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Optimizer failed."); }
@@ -89,6 +90,7 @@ export function OptimizerPage() {
   return <section className="optimizer-page">
     <header><h2>Optimizer</h2><p>Best plan found within the selected search limits. Exact global optimality is not guaranteed.</p></header>
     <form className="optimizer-controls" onSubmit={submit}>{fields.map(([key, label]) => <label key={key}>{label}<input aria-label={label} type="number" min="1" max={limits[key]} step="1" value={values[key]} disabled={running} onChange={(event) => setValues({ ...values, [key]: event.target.value })} /></label>)}
+      <fieldset><legend>Current reset remaining</legend>{world.villages.map((village) => <div key={village.id}><strong>{village.name}</strong><label>Reset days for {village.name}<input type="number" min="0" step="1" value={resets[village.id]?.days ?? ""} onChange={(event) => setResets((current) => ({ ...current, [village.id]: { ...current[village.id], days: event.target.value } }))} /></label><label>Reset hours for {village.name}<input type="number" min="0" max="23" step="1" value={resets[village.id]?.hours ?? ""} onChange={(event) => setResets((current) => ({ ...current, [village.id]: { ...current[village.id], hours: event.target.value } }))} /></label></div>)}</fieldset>
       <div className="optimizer-mode"><strong>Continuous mode: {world.player.continuousMode ? "On" : "Off"}</strong><small>Used only as a tie-break preference; realized profit remains the primary goal.</small></div>
       <button type="submit" disabled={running}>{running ? "Running optimizer..." : "Run Optimizer"}</button>
     </form>

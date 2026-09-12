@@ -321,11 +321,21 @@ worldRouter.delete(
         error,
       );
 
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to delete village";
+
+      if (message.includes("FOREIGN KEY constraint failed")) {
+        res.status(409).json({
+          error:
+            "This village is the player's current village. Choose another current village in Database & Settings before deleting it.",
+        });
+        return;
+      }
+
       res.status(500).json({
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to delete village",
+        error: "Failed to delete village",
       });
     }
   },

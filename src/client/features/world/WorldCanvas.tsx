@@ -17,7 +17,6 @@ import {
 } from "./DirectionalRouteEdge";
 import {
   formatRouteDuration,
-  resolveRoutePairLayouts,
   selectRouteHandleSides,
 } from "./route-edge-layout";
 import {
@@ -63,14 +62,12 @@ const edgeTypes = {
 };
 
 function createEdges(world: WorldData, nodes: VillageNodeType[], onRouteEdit: WorldCanvasProps["onRouteEdit"], selectedEdgeId: string | null): DirectionalRouteEdgeType[] {
-  const pairLayouts = resolveRoutePairLayouts(world.routes);
   const positions = new Map(nodes.map((node) => [node.id, node.position]));
 
   return world.routes.flatMap((route) => {
     const sourcePosition = positions.get(route.from);
     const targetPosition = positions.get(route.to);
-    const pairLayout = pairLayouts.get(route.id);
-    if (!sourcePosition || !targetPosition || !pairLayout) return [];
+    if (!sourcePosition || !targetPosition) return [];
     const handles = selectRouteHandleSides(sourcePosition, targetPosition);
 
     return [{
@@ -82,13 +79,15 @@ function createEdges(world: WorldData, nodes: VillageNodeType[], onRouteEdit: Wo
     targetHandle: `target-${handles.targetSide}`,
     type: "directionalRoute",
     markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
+    markerStart: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
     data: {
       routeId: route.id,
       from: route.from,
       to: route.to,
-      durationLabel: formatRouteDuration(route.travelTime.days, route.travelTime.hours),
+      durationLabel: route.reverseTravelTime
+        ? `${formatRouteDuration(route.travelTime.days, route.travelTime.hours)} / ${formatRouteDuration(route.reverseTravelTime.days, route.reverseTravelTime.hours)}`
+        : formatRouteDuration(route.travelTime.days, route.travelTime.hours),
       onEdit: onRouteEdit,
-      ...pairLayout,
     },
   }];
   });

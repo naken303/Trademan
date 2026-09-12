@@ -215,8 +215,7 @@ export function VillagePage() {
               <tr>
                 <th>Village</th>
                 <th>Reserve Money</th>
-                <th>Current Reset</th>
-                <th>After Reset</th>
+                <th>Reset Cycle</th>
                 <th>Position</th>
                 <th>Actions</th>
               </tr>
@@ -240,11 +239,7 @@ export function VillagePage() {
                       {currency ? formatMoney(village.initialReserveMoney, currency) : village.initialReserveMoney.toLocaleString()}
                     </td>
 
-                    <td data-label="Current reset">
-                      {formatDuration(village.reset.current.days, village.reset.current.hours)}
-                    </td>
-
-                    <td data-label="After reset">
+                    <td data-label="Reset cycle">
                       {formatDuration(village.reset.afterReset.days, village.reset.afterReset.hours)}
                     </td>
 
@@ -290,7 +285,7 @@ export function VillagePage() {
               {villages.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={5}
                     className="village-empty"
                   >
                     No villages yet. Add a village to begin building the world.

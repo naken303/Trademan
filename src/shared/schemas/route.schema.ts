@@ -5,10 +5,11 @@ const routeFields = {
   from: z.string().min(1),
   to: z.string().min(1),
   travelTime: durationSchema,
+  reverseTravelTime: durationSchema.optional(),
 };
 
 function validateRoute(
-  route: { from: string; to: string; travelTime: { days: number; hours: number } },
+  route: { from: string; to: string; travelTime: { days: number; hours: number }; reverseTravelTime?: { days: number; hours: number } },
   context: z.RefinementCtx,
 ) {
   if (route.from === route.to) {
@@ -25,6 +26,10 @@ function validateRoute(
       path: ["travelTime"],
       message: "Route travel time must be greater than zero",
     });
+  }
+
+  if (route.reverseTravelTime?.days === 0 && route.reverseTravelTime.hours === 0) {
+    context.addIssue({ code: "custom", path: ["reverseTravelTime"], message: "Return travel time must be greater than zero" });
   }
 }
 
