@@ -3,7 +3,7 @@
 ## Last Updated
 
 - Date: 2026-09-12
-- Commit: This commit (`Revise routes reset setup market quantities and product IDs`)
+- Commit: `3f762d2` (`Revise routes reset setup market quantities and product IDs`)
 - Branch: main
 
 ## Current Phase
@@ -14,9 +14,9 @@
 
 ## Repository Status
 
-- Working Tree: Clean after this commit.
-- Latest Commit: This commit (`Revise routes reset setup market quantities and product IDs`)
-- Notes: The four requested contract revisions are implemented with additive migration and legacy WorldData normalization; a fresh final release verification remains required.
+- Working Tree: Tracked files clean after the status-note commit; pre-existing untracked asset directories remain (`corrected-set-01/`, `item-crops/`, and `sample-crops/`).
+- Latest Commit: This status-note commit, following implementation commit `3f762d2`.
+- Notes: The four requested contract revisions are implemented with additive migration and legacy WorldData normalization; the pre-existing untracked asset directories were not modified or committed, and a fresh final release verification remains required.
 
 ## Verification
 
