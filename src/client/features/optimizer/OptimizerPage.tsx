@@ -17,7 +17,7 @@ import "./OptimizerPage.css";
 import { formatDuration } from "../../utils/format";
 
 const limits = { periodDays: 365, beamWidth: 2_000, maxSteps: 500, maxExpandedStates: 500_000 } as const;
-type FormValues = Record<keyof typeof limits, string>;
+type FormValues = Record<keyof typeof limits, string> & { targetProfit: string };
 const timeLabel = (time: { day: number; hour: number }) => `Day ${time.day}, ${time.hour}:00`;
 const durationLabel = (duration?: { days: number; hours: number }) => duration ? formatDuration(duration.days, duration.hours) : "Unknown duration";
 
@@ -26,15 +26,21 @@ function initialForm(world: WorldData): FormValues {
     periodDays: String(world.optimization.periodDays), beamWidth: String(world.optimization.beamWidth),
     maxSteps: String(world.optimization.maxSteps),
     maxExpandedStates: String(Math.min(limits.maxExpandedStates, world.optimization.beamWidth * world.optimization.maxSteps * 4)),
+    targetProfit: "",
   };
 }
 
 function validate(values: FormValues): OptimizerRunRequest {
-  const parsed = Object.fromEntries(Object.entries(values).map(([key, value]) => [key, Number(value)])) as Record<keyof FormValues, number>;
-  for (const [key, maximum] of Object.entries(limits) as [keyof FormValues, number][]) {
+  const parsed = Object.fromEntries(Object.entries(values).filter(([key]) => key !== "targetProfit").map(([key, value]) => [key, Number(value)])) as Record<keyof typeof limits, number>;
+  for (const [key, maximum] of Object.entries(limits) as [keyof typeof limits, number][]) {
     if (!Number.isInteger(parsed[key]) || parsed[key] < 1 || parsed[key] > maximum) {
       throw new Error(`${key} must be a whole number from 1 to ${maximum.toLocaleString()}.`);
     }
+  }
+  if (values.targetProfit.trim() !== "") {
+    const targetProfit = Number(values.targetProfit);
+    if (!Number.isFinite(targetProfit) || targetProfit <= 0) throw new Error("Profit target must be greater than zero.");
+    return { ...parsed, targetProfit };
   }
   return parsed;
 }
@@ -100,13 +106,15 @@ export function OptimizerPage() {
   if (world.villages.length === 0) return <section className="optimizer-page"><header><h2>Optimizer</h2><p>Best plan found within the selected search limits.</p></header><div className="page-state">Create at least one Village before running the optimizer.</div></section>;
   const villageName = (id: string) => world.villages.find((item) => item.id === id)?.name ?? `Missing village (${id})`;
   const productName = (id: string) => world.products.find((item) => item.id === id)?.name ?? `Missing product (${id})`;
-  const fields: [keyof FormValues, string][] = [["periodDays", "Optimization period (days)"], ["beamWidth", "Beam width"], ["maxSteps", "Maximum plan steps"], ["maxExpandedStates", "Maximum expanded states"]];
+  const targetMode = values.targetProfit.trim() !== "";
+  const fields: [keyof typeof limits, string][] = [["periodDays", "Optimization period (days)"], ["beamWidth", "Beam width"], ["maxSteps", "Maximum plan steps"], ["maxExpandedStates", "Maximum expanded states"]];
   return <section className="optimizer-page">
     <header><h2>Optimizer</h2><p>Best plan found within the selected search limits. Exact global optimality is not guaranteed.</p></header>
     <form className="optimizer-form" onSubmit={submit}>
       <section className="optimizer-configuration" aria-labelledby="optimizer-search-heading">
         <div className="optimizer-section-heading"><h3 id="optimizer-search-heading">Search Configuration</h3><p>Higher Beam width explores more alternatives but uses more memory. Use Brake to keep the best result found so far.</p></div>
-        <div className="optimizer-search-grid">{fields.map(([key, label]) => <label key={key}>{label}<input aria-label={label} type="number" min="1" max={limits[key]} step="1" value={values[key]} disabled={running} onChange={(event) => setValues({ ...values, [key]: event.target.value })} /></label>)}</div>
+        <div className="optimizer-search-grid">{fields.map(([key, label]) => <label key={key}>{label}<input aria-label={label} type="number" min="1" max={limits[key]} step="1" value={values[key]} disabled={running || (targetMode && key !== "beamWidth")} onChange={(event) => setValues({ ...values, [key]: event.target.value })} /></label>)}<label>Profit target (optional)<input aria-label="Profit target" type="number" min="0" step="1" value={values.targetProfit} disabled={running} onChange={(event) => setValues({ ...values, targetProfit: event.target.value })} /></label></div>
+        {targetMode && <div className="optimizer-notice">Target mode ignores Optimization period, Maximum plan steps, and Maximum expanded states. Beam width remains the memory limit; use Brake to stop early.</div>}
         <div className="optimizer-mode"><strong>Continuous mode: {world.player.continuousMode ? "On" : "Off"}</strong><small>Used only as a tie-break preference; realized profit remains the primary goal.</small></div>
       </section>
       <VillageResetSetup villages={world.villages} values={resets} onChange={setResets} disabled={running} showAllErrors={showResetErrors} />
@@ -124,6 +132,7 @@ export function OptimizerPage() {
         <div><span>Plan actions</span><strong>{result.plan.length}</strong></div><div><span>Search time</span><strong>{result.statistics.elapsedMs.toFixed(1)} ms</strong></div>
       </div>
       {result.statistics.terminationReason === "brake" && <div className="optimizer-notice">Best result found so far. Search was stopped with Brake.</div>}
+      {result.statistics.terminationReason === "targetProfit" && <div className="optimizer-notice">Profit target reached.</div>}
       {result.accumulatedProfit <= 0 && <div className="optimizer-notice">No profitable plan was found within the explored states.</div>}
       <div className="optimizer-results-grid"><section className="optimizer-card"><h3>Best plan</h3>{result.plan.length === 0 ? <p>No actions were selected.</p> : <ol className="optimizer-plan">{result.plan.map((step, index) => <StepRow key={index} step={step} index={index} world={world} previousVillageId={index === 0 ? world.player.currentVillageId : result.plan[index - 1].villageId} previousProfit={index === 0 ? 0 : result.plan[index - 1].accumulatedProfit} />)}</ol>}</section>
         <div className="optimizer-side"><section className="optimizer-card"><h3>Final state</h3><dl><div><dt>Village</dt><dd>{villageName(result.finalState.player.location)}</dd></div><div><dt>Money</dt><dd>{result.finalState.player.money.toLocaleString()} {world.settings.currency}</dd></div><div><dt>Realized profit</dt><dd>{result.finalState.accumulatedProfit.toLocaleString()} {world.settings.currency}</dd></div><div><dt>Crates</dt><dd>{usedCrates} used / {world.player.inventoryCapacityCrates} capacity</dd></div><div><dt>Time</dt><dd>{timeLabel(result.finalState.time)}</dd></div></dl><h4>Inventory</h4>{result.finalState.player.inventory.length === 0 ? <p>Inventory is empty.</p> : <ul>{result.finalState.player.inventory.map((item) => <li key={item.productId}>{productName(item.productId)}: {item.quantity.toLocaleString()}</li>)}</ul>}</section>

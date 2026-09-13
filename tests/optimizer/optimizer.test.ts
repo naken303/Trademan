@@ -60,6 +60,12 @@ describe("optimizer core", () => {
     expect(plan[0].action).toEqual({ type: "buy", productId: "P", quantity: 15 });
     expect(plan[0]).toMatchObject({ time: { day: 1, hour: 0 }, playerMoney: 70 });
   });
+  it("continues past ordinary search limits until a configured profit target is reached", () => {
+    const result = runOptimizer(world(), { targetProfit: 60, maxSteps: 1, maxExpandedStates: 1 });
+    expect(result.accumulatedProfit).toBeGreaterThanOrEqual(60);
+    expect(result.statistics.terminationReason).toBe("targetProfit");
+    replayAndExpectResult(world(), result);
+  });
   it("finds a profitable direct buy, travel, and sell plan", () => {
     const result = runOptimizer(world());
     expect(result.accumulatedProfit).toBeGreaterThan(0);

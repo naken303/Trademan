@@ -8,17 +8,18 @@
 
 ## Current Phase
 
-- Phase: Optimizer job architecture in progress
-- Current Task: Job-based execution with cooperative Brake
+- Phase: Optimizer target-mode and performance indexing complete
+- Current Task: Profit Target search mode
 - Task Status: `completed`
 
 ## Repository Status
 
 - Working Tree: Clean after optimizer job commit.
 - Latest Commit: `b112ff4` (`Reduce optimizer memory and add graceful brake`).
-- Notes: The fixed timeout has been removed. Optimizer execution now uses one active server-side job, worker progress polling, cooperative Brake, and a disposable SQLite dominance store in the system temp directory.
+- Notes: The fixed timeout has been removed. Optimizer execution now uses one active server-side job, worker progress polling, cooperative Brake, a disposable SQLite dominance store in the system temp directory, and optional Profit Target search mode.
   The Optimizer page restores its running state from an active job after reload and keeps Brake visible after start.
   Returned plans compact consecutive same-village Buy/Sell actions for the same product without changing the simulated final state.
+  Target mode ignores period/steps/expanded-state stopping conditions, retains Beam Width as the active memory bound, and relies on target completion, frontier exhaustion, or Brake to finish.
 
 ## Verification
 
@@ -35,9 +36,9 @@
 - Command: `npm run test`
 - Status: `PASS`
 - Date: 2026-09-12
-- Tests: 21 test files passed; 93 tests passed.
+- Tests: 21 test files passed; 95 tests passed.
 - Error Summary: None
-- Details: 21 Vitest files and 93 tests completed successfully, including optimizer job lifecycle and cooperative Brake coverage.
+- Details: 21 Vitest files and 95 tests completed successfully, including target mode overriding ordinary step/state limits.
 
 ### Lint
 
@@ -64,9 +65,9 @@
 ## Changes In Last Task
 
 - Files changed: Optimizer search, Optimizer page/client API/server route, Optimizer Worker/API test, shared E2E flow, and this status note.
-- What changed: Replaced timeout-bound request execution with a single active optimizer job and cooperative Brake; historical dominance metadata is stored in a disposable temporary SQLite file.
-- Why: Valid long searches must not be ended by a wall-clock timeout or retain every complete search node in Worker heap.
-- Behavior affected: Optimizer now starts/polls jobs, shows progress, and Brake returns the best valid result found so far; no trading or persistence rules changed.
+- What changed: Added optional Profit Target and per-run immutable indexes for products, village markets, and reachable destinations.
+- Why: Allow target-driven search without ordinary period/step/state stop limits and avoid rebuilding static lookup data for every expanded state.
+- Behavior affected: A positive target continues until target, frontier exhaustion, or Brake; Beam Width remains the memory bound. Normal runs retain existing limits and business rules.
 
 ## Known Issues
 
@@ -81,6 +82,12 @@
    - Problem: Edge routing intentionally uses local smart handles rather than global crossing or label-collision optimization.
    - Impact: Very dense worlds can still have intersections between unrelated route pairs.
    - Recommended action: Reposition villages manually; consider a bounded fan-out enhancement only if dense-world usage proves it necessary.
+
+3. Medium
+   - Location: Optimizer Target mode
+   - Problem: An unreachable profit target can search indefinitely by design.
+   - Impact: The user must use Brake when no target result is found.
+   - Recommended action: Set realistic targets and monitor progress/Brake.
 
 ## Completed Milestones
 
@@ -167,10 +174,10 @@
 - Product create requests omit `id`; SQLite-backed IDs use monotonic `P000001` formatting while legacy IDs such as `MILK` remain unchanged and updateable.
 - Current Reset card edits remain client-local until Start Simulation or Run Optimizer; E2E verified that editing does not issue Village persistence requests.
 - Responsive browser inspection passed at 1440, 1024, 768, and 390 px for both setup pages, including local error presentation and Optimizer results; no page-level horizontal overflow was observed.
-- Latest verification: build PASS, 21 Vitest files/93 tests PASS, lint PASS, and 4 isolated Playwright tests PASS. Remaining limitation: no committed stress benchmark fixture yet.
+- Latest verification: build PASS, 21 Vitest files/95 tests PASS, lint PASS, and 4 isolated Playwright tests PASS. Remaining limitation: no committed stress benchmark fixture yet.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-13 | b112ff4 | PASS | PASS | PASS | PASS | Optimizer job/Brake architecture: 21 Vitest files/93 tests and 4 isolated Playwright flows passed. |
+| 2026-09-13 | Uncommitted | PASS | PASS | PASS | PASS | Profit Target and static optimizer indexes: 21 Vitest files/95 tests and 4 isolated Playwright flows passed. |

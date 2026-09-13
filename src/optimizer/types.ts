@@ -6,6 +6,7 @@ export interface OptimizerInput {
   beamWidth?: number;
   maxSteps?: number;
   maxExpandedStates?: number;
+  targetProfit?: number;
 }
 
 export type OptimizerAction =
@@ -26,6 +27,7 @@ export interface OptimizerSearchOptions {
   beamWidth?: number;
   maxSteps?: number;
   maxExpandedStates?: number;
+  targetProfit?: number;
   villageResetRemaining?: Record<string, Duration>;
 }
 
@@ -34,6 +36,7 @@ export interface ResolvedOptimizerSearchOptions {
   beamWidth: number;
   maxSteps: number;
   maxExpandedStates: number;
+  targetProfit?: number;
 }
 
 export interface OptimizerSearchStatistics {
@@ -46,7 +49,7 @@ export interface OptimizerSearchStatistics {
   bestAccumulatedProfit: number;
   peakHeapUsedBytes: number;
   peakRssBytes: number;
-  terminationReason: "completed" | "brake" | "maxSteps" | "maxExpandedStates" | "frontierExhausted";
+  terminationReason: "completed" | "brake" | "targetProfit" | "maxSteps" | "maxExpandedStates" | "frontierExhausted";
   elapsedMs: number;
 }
 
