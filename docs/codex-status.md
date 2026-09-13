@@ -3,7 +3,7 @@
 ## Last Updated
 
 - Date: 2026-09-13
-- Commit: `6c8e0f1` (`Liquidate remaining optimizer inventory`)
+- Commit: `1667105` (`Add optional one-way routes`)
 - Branch: main
 
 ## Current Phase
@@ -14,8 +14,8 @@
 
 ## Repository Status
 
-- Working Tree: Route return-availability changes are ready to commit.
-- Latest Commit: `6c8e0f1` (`Liquidate remaining optimizer inventory`).
+- Working Tree: Clean after committing the route return-availability change.
+- Latest Commit: `1667105` (`Add optional one-way routes`).
 - Notes: Routes remain bidirectional by default. A route may now explicitly disable its return trip; Simulation and Optimizer then cannot use reverse fallback for that route.
   The Optimizer page restores its running state from an active job after reload and keeps Brake visible after start.
   Returned plans compact consecutive same-village Buy/Sell actions for the same product without changing the simulated final state.
@@ -195,4 +195,4 @@
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
 | 2026-09-13 | Uncommitted | PASS | PASS | PASS | PASS | Post-plan liquidation: 21 Vitest files/96 tests and 4 isolated Playwright flows passed. |
-| 2026-09-13 | Uncommitted | PASS | PASS | PASS | FAIL | Added optional one-way routes; Chromium browser launch was blocked by `spawn EPERM`. |
+| 2026-09-13 | `1667105` | PASS | PASS | PASS | FAIL | Added optional one-way routes; Chromium browser launch was blocked by `spawn EPERM`. |
