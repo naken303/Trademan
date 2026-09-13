@@ -78,7 +78,7 @@ export function OptimizerPage() {
   }
   useEffect(() => { getWorld().then((loaded) => { setWorld(loaded); setValues(initialForm(loaded)); setResets(createVillageResetDraft(loaded.villages)); setError(null); })
     .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Unable to load optimizer settings."))
-    .finally(() => setLoading(false)); void getCurrentOptimizerRun().then(setJob).catch(() => undefined); }, []);
+    .finally(() => setLoading(false)); void getCurrentOptimizerRun().then((active) => { setJob(active); setRunning(active.status === "starting" || active.status === "running" || active.status === "braking"); }).catch(() => undefined); }, []);
   useEffect(() => { if (!job || (job.status !== "starting" && job.status !== "running" && job.status !== "braking")) return; const timer = window.setInterval(() => { void getOptimizerRun(job.runId).then((next) => { setJob(next); if (next.result) { setResult(next.result); setRunning(false); } }).catch((cause: unknown) => { setError(cause instanceof Error ? cause.message : "Optimizer failed."); setRunning(false); }); }, 750); return () => window.clearInterval(timer); }, [job]);
 
   const usedCrates = useMemo(() => result && world ? getInventoryCrates(result.finalState.player.inventory, world.products) : 0, [result, world]);
@@ -92,8 +92,7 @@ export function OptimizerPage() {
       const options = { ...validate(values), ...initialization };
       setRunning(true); setError(null); setResult(null);
       setJob(await startOptimizer(options));
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Optimizer failed."); }
-    finally { setRunning(false); }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Optimizer failed."); setRunning(false); }
   }
 
   if (loading) return <section className="optimizer-page"><h2>Optimizer</h2><div className="page-state">Loading optimizer settings...</div></section>;
