@@ -6,7 +6,7 @@ import { compareForFrontier, compareForResult, createDominanceScore, type Scored
 import { createOptimizerStateSignature } from "./state-signature";
 import type { OptimizerStateStore } from "./state-store";
 import type {
-  OptimizerAction, OptimizerResult, OptimizerSearchOptions,
+  OptimizerAction, OptimizerPlanStep, OptimizerResult, OptimizerSearchOptions,
   ResolvedOptimizerSearchOptions, OptimizerSearchStatistics,
 } from "./types";
 
@@ -109,6 +109,22 @@ function sortCandidates(world: WorldData, candidates: SearchNode[]): SearchNode[
     || actionKey(left.plan.at(-1)!.action).localeCompare(actionKey(right.plan.at(-1)!.action)));
 }
 
+/** Consecutive trades at the same village/product have no time or price change, so one combined action replays identically. */
+export function compactOptimizerPlan(plan: OptimizerPlanStep[]): OptimizerPlanStep[] {
+  return plan.reduce<OptimizerPlanStep[]>((compacted, step) => {
+    const previous = compacted.at(-1);
+    if (previous
+      && previous.villageId === step.villageId
+      && previous.action.type === step.action.type
+      && (step.action.type === "buy" || step.action.type === "sell")
+      && (previous.action.type === "buy" || previous.action.type === "sell")
+      && previous.action.productId === step.action.productId) {
+      compacted[compacted.length - 1] = { ...step, action: { ...step.action, quantity: previous.action.quantity + step.action.quantity } };
+    } else compacted.push(step);
+    return compacted;
+  }, []);
+}
+
 export function runOptimizer(world: WorldData, options: OptimizerSearchOptions = {}, control: OptimizerRunControl = {}): OptimizerResult {
   const startedAt = performance.now();
   const resolved = resolveOptions(world, options);
@@ -190,5 +206,5 @@ export function runOptimizer(world: WorldData, options: OptimizerSearchOptions =
   statistics.terminationReason = terminationReason;
   statistics.bestAccumulatedProfit = best.state.accumulatedProfit;
   report();
-  return { plan: best.plan, finalState: best.state, accumulatedProfit: best.state.accumulatedProfit, options: resolved, statistics };
+  return { plan: compactOptimizerPlan(best.plan), finalState: best.state, accumulatedProfit: best.state.accumulatedProfit, options: resolved, statistics };
 }

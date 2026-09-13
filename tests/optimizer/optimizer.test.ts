@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Market, Route, SimulationState, WorldData } from "../../src/shared/types";
 import { SimulationEngine, createInitialSimulationState } from "../../src/simulation";
-import { compareForResult, createOptimizerStateSignature, runOptimizer } from "../../src/optimizer";
+import { compactOptimizerPlan, compareForResult, createOptimizerStateSignature, runOptimizer } from "../../src/optimizer";
 import { exactTinyMaximumProfit, materialState, replayAndExpectResult } from "./optimizer-test-helpers";
 
 function world(options: {
@@ -50,6 +50,16 @@ function replay(input: WorldData, actions: ReturnType<typeof runOptimizer>["plan
 }
 
 describe("optimizer core", () => {
+  it("combines consecutive same-village product trades for the returned plan", () => {
+    const plan = compactOptimizerPlan([
+      { action: { type: "buy", productId: "P", quantity: 11 }, villageId: "A", time: { day: 1, hour: 0 }, playerMoney: 78, accumulatedProfit: 0 },
+      { action: { type: "buy", productId: "P", quantity: 4 }, villageId: "A", time: { day: 1, hour: 0 }, playerMoney: 70, accumulatedProfit: 0 },
+      { action: { type: "travel", destinationId: "B" }, villageId: "B", time: { day: 1, hour: 2 }, playerMoney: 70, accumulatedProfit: 0 },
+    ]);
+    expect(plan).toHaveLength(2);
+    expect(plan[0].action).toEqual({ type: "buy", productId: "P", quantity: 15 });
+    expect(plan[0]).toMatchObject({ time: { day: 1, hour: 0 }, playerMoney: 70 });
+  });
   it("finds a profitable direct buy, travel, and sell plan", () => {
     const result = runOptimizer(world());
     expect(result.accumulatedProfit).toBeGreaterThan(0);

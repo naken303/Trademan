@@ -18,6 +18,7 @@
 - Latest Commit: `b112ff4` (`Reduce optimizer memory and add graceful brake`).
 - Notes: The fixed timeout has been removed. Optimizer execution now uses one active server-side job, worker progress polling, cooperative Brake, and a disposable SQLite dominance store in the system temp directory.
   The Optimizer page restores its running state from an active job after reload and keeps Brake visible after start.
+  Returned plans compact consecutive same-village Buy/Sell actions for the same product without changing the simulated final state.
 
 ## Verification
 
