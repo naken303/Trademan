@@ -79,7 +79,7 @@ describe("optimizer HTTP API", () => {
     });
     expect(invalidWorld.status).toBe(400);
 
-    for (const invalid of [{ beamWidth: 0 }, { maxSteps: 501 }, { maxExpandedStates: 500_001 }]) {
+    for (const invalid of [{ beamWidth: 0 }, { maxSteps: 501 }, { maxExpandedStates: 500_001 }, { timeoutSeconds: 0 }, { timeoutSeconds: 601 }]) {
       const response = await fetch(`${baseUrl}/api/optimizer/run`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(invalid),
       });
@@ -92,6 +92,20 @@ describe("optimizer HTTP API", () => {
     });
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ accumulatedProfit: 30, options: { periodDays: 1 } });
+  });
+
+  it("passes a bounded run-specific timeout to the worker runner", async () => {
+    let receivedTimeout: number | undefined;
+    const baseUrl = await listen(createApp({ optimizerRunner: async (world, options, runnerOptions) => {
+      receivedTimeout = runnerOptions?.timeoutMs;
+      return runOptimizerInWorker(world, options, { timeoutMs: 5_000 });
+    } }));
+    const response = await fetch(`${baseUrl}/api/optimizer/run`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ beamWidth: 20, maxSteps: 4, timeoutSeconds: 90 }),
+    });
+    expect(response.status).toBe(200);
+    expect(receivedTimeout).toBe(90_000);
   });
 
   it("maps timeout and runtime failures while keeping the server responsive", async () => {

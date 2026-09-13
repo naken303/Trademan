@@ -20,12 +20,14 @@ test("CRUD UI persists revised contracts", async ({ page, request }) => {
   await page.getByRole("button", { name: "+ Add Product" }).click();
   await expect(page.getByLabel("Product ID")).toHaveCount(0);
   await page.getByLabel("Name").fill("Audit Product");
+  await page.getByLabel("Category").selectOption("Military");
   await page.getByLabel("Units per crate").fill("20");
   await page.getByRole("button", { name: "Add Product", exact: true }).click();
   await expect(page.locator("tr").filter({ hasText: "Audit Product" })).toBeVisible();
   let world = worldDataSchema.parse(await (await request.get("http://127.0.0.1:3100/api/world")).json());
   const product = world.products.find((item) => item.name === "Audit Product")!;
   expect(product.id).toMatch(/^P\d{6}$/);
+  expect(product.category).toBe("Military");
 
   await page.goto("/villages");
   await page.getByRole("button", { name: "+ Add Village" }).click();
@@ -112,9 +114,10 @@ test("simulation and optimizer share visual run-specific reset setup", async ({ 
   await page.getByLabel("Beam width").fill("20");
   await page.getByLabel("Maximum plan steps").fill("8");
   await page.getByLabel("Maximum expanded states").fill("500");
+  await page.getByLabel("Runtime timeout (seconds)").fill("45");
   await page.getByRole("button", { name: "Run Optimizer" }).click();
   await expect(page.getByText("Best realized profit")).toBeVisible({ timeout: 30_000 });
-  expect(optimizerPayloads[0]).toMatchObject({ villageResetRemaining: { A: { days: 1, hours: 3 } } });
+  expect(optimizerPayloads[0]).toMatchObject({ timeoutSeconds: 45, villageResetRemaining: { A: { days: 1, hours: 3 } } });
   await page.getByLabel("Village A Current Reset Hours").fill("5");
   await page.getByRole("button", { name: "Run Optimizer" }).click();
   await expect.poll(() => optimizerPayloads.length).toBe(2);

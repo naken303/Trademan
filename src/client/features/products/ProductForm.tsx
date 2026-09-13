@@ -20,12 +20,19 @@ interface ProductFormState {
   baseDemandPrice: string;
 }
 
+const PRODUCT_CATEGORIES = [
+  "Military",
+  "Domestic",
+  "Industrial",
+  "Neutral",
+] as const;
+
 function createInitialState(
   product?: Product,
 ): ProductFormState {
   return {
     name: product?.name ?? "",
-    category: product?.category ?? "",
+    category: product?.category ?? "Neutral",
     unitsPerCrate: product?.unitsPerCrate
       ? String(product.unitsPerCrate)
       : "20",
@@ -208,7 +215,7 @@ export function ProductForm({
       <label>
         <div>Category</div>
 
-        <input
+        <select
           value={form.category}
           onChange={(event) =>
             updateField(
@@ -217,8 +224,14 @@ export function ProductForm({
             )
           }
           disabled={loading}
-          placeholder="e.g. Food"
-        />
+        >
+          {form.category && !PRODUCT_CATEGORIES.some((category) => category === form.category) && (
+            <option value={form.category}>{form.category} (Existing)</option>
+          )}
+          {PRODUCT_CATEGORIES.map((category) => (
+            <option key={category} value={category}>{category}</option>
+          ))}
+        </select>
       </label>
 
       <label>

@@ -97,6 +97,11 @@ function actionKey(action: OptimizerAction): string {
   return action.type === "travel" ? `travel:${action.destinationId}` : `${action.type}:${action.productId}:${action.quantity}`;
 }
 
+function sortCandidates(world: WorldData, candidates: SearchNode[]): SearchNode[] {
+  return candidates.sort((left, right) => compareForFrontier(world, right, left)
+    || actionKey(left.plan.at(-1)!.action).localeCompare(actionKey(right.plan.at(-1)!.action)));
+}
+
 export function runOptimizer(world: WorldData, options: OptimizerSearchOptions = {}): OptimizerResult {
   const startedAt = performance.now();
   const resolved = resolveOptions(world, options);
@@ -111,6 +116,7 @@ export function runOptimizer(world: WorldData, options: OptimizerSearchOptions =
   let frontier = [initial];
   let best = initial;
   const cache = new Map([[createOptimizerStateSignature(initialState), initial]]);
+  const maxCandidatesPerDepth = resolved.beamWidth * 8;
   const statistics = { expandedStates: 0, generatedStates: 0, deduplicatedStates: 0, maxFrontierSize: 1, elapsedMs: 0 };
 
   for (let depth = 0; depth < resolved.maxSteps && frontier.length > 0; depth += 1) {
@@ -131,19 +137,23 @@ export function runOptimizer(world: WorldData, options: OptimizerSearchOptions =
           firstProfitStep: node.firstProfitStep ?? (profitIncreased ? depth + 1 : null),
         };
         const signature = createOptimizerStateSignature(state);
-        const existing = cache.get(signature);
+        const existing = nextBySignature.get(signature) ?? cache.get(signature);
         if (existing && compareForFrontier(world, candidate, existing) <= 0) {
           statistics.deduplicatedStates += 1;
           continue;
         }
-        cache.set(signature, candidate);
         nextBySignature.set(signature, candidate);
         if (compareForResult(world, candidate, best) > 0) best = candidate;
+        if (nextBySignature.size >= maxCandidatesPerDepth * 2) {
+          const retained = sortCandidates(world, [...nextBySignature.values()]).slice(0, maxCandidatesPerDepth);
+          nextBySignature.clear();
+          for (const retainedCandidate of retained) nextBySignature.set(createOptimizerStateSignature(retainedCandidate.state), retainedCandidate);
+        }
       }
     }
-    const next = [...nextBySignature.values()];
-    next.sort((left, right) => compareForFrontier(world, right, left) || actionKey(left.plan.at(-1)!.action).localeCompare(actionKey(right.plan.at(-1)!.action)));
-    frontier = next.slice(0, resolved.beamWidth);
+    frontier = sortCandidates(world, [...nextBySignature.values()]).slice(0, resolved.beamWidth);
+    cache.clear();
+    for (const node of frontier) cache.set(createOptimizerStateSignature(node.state), node);
     statistics.maxFrontierSize = Math.max(statistics.maxFrontierSize, frontier.length);
     if (statistics.expandedStates >= resolved.maxExpandedStates) break;
   }

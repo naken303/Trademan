@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { getInventoryCrates } from "../../../domain/inventory";
 import { getTravelTime } from "../../../domain/route";
-import type { OptimizerPlanStep, OptimizerResult, OptimizerSearchOptions } from "../../../optimizer";
+import type { OptimizerPlanStep, OptimizerResult } from "../../../optimizer";
 import type { WorldData } from "../../../shared/types";
 import {
   VillageResetSetup,
@@ -12,11 +12,11 @@ import {
   type VillageResetDraft,
 } from "../../components/village-reset-setup-model";
 import { getWorld } from "../world/world-api";
-import { runOptimizer } from "./optimizer-api";
+import { runOptimizer, type OptimizerRunRequest } from "./optimizer-api";
 import "./OptimizerPage.css";
 import { formatDuration } from "../../utils/format";
 
-const limits = { periodDays: 365, beamWidth: 2_000, maxSteps: 500, maxExpandedStates: 500_000 } as const;
+const limits = { periodDays: 365, beamWidth: 2_000, maxSteps: 500, maxExpandedStates: 500_000, timeoutSeconds: 600 } as const;
 type FormValues = Record<keyof typeof limits, string>;
 const timeLabel = (time: { day: number; hour: number }) => `Day ${time.day}, ${time.hour}:00`;
 const durationLabel = (duration?: { days: number; hours: number }) => duration ? formatDuration(duration.days, duration.hours) : "Unknown duration";
@@ -26,10 +26,11 @@ function initialForm(world: WorldData): FormValues {
     periodDays: String(world.optimization.periodDays), beamWidth: String(world.optimization.beamWidth),
     maxSteps: String(world.optimization.maxSteps),
     maxExpandedStates: String(Math.min(limits.maxExpandedStates, world.optimization.beamWidth * world.optimization.maxSteps * 4)),
+    timeoutSeconds: "30",
   };
 }
 
-function validate(values: FormValues): OptimizerSearchOptions {
+function validate(values: FormValues): OptimizerRunRequest {
   const parsed = Object.fromEntries(Object.entries(values).map(([key, value]) => [key, Number(value)])) as Record<keyof FormValues, number>;
   for (const [key, maximum] of Object.entries(limits) as [keyof FormValues, number][]) {
     if (!Number.isInteger(parsed[key]) || parsed[key] < 1 || parsed[key] > maximum) {
@@ -99,7 +100,7 @@ export function OptimizerPage() {
   if (world.villages.length === 0) return <section className="optimizer-page"><header><h2>Optimizer</h2><p>Best plan found within the selected search limits.</p></header><div className="page-state">Create at least one Village before running the optimizer.</div></section>;
   const villageName = (id: string) => world.villages.find((item) => item.id === id)?.name ?? `Missing village (${id})`;
   const productName = (id: string) => world.products.find((item) => item.id === id)?.name ?? `Missing product (${id})`;
-  const fields: [keyof FormValues, string][] = [["periodDays", "Optimization period (days)"], ["beamWidth", "Beam width"], ["maxSteps", "Maximum plan steps"], ["maxExpandedStates", "Maximum expanded states"]];
+  const fields: [keyof FormValues, string][] = [["periodDays", "Optimization period (days)"], ["beamWidth", "Beam width"], ["maxSteps", "Maximum plan steps"], ["maxExpandedStates", "Maximum expanded states"], ["timeoutSeconds", "Runtime timeout (seconds)"]];
   return <section className="optimizer-page">
     <header><h2>Optimizer</h2><p>Best plan found within the selected search limits. Exact global optimality is not guaranteed.</p></header>
     <form className="optimizer-form" onSubmit={submit}>

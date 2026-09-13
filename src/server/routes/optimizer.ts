@@ -3,7 +3,11 @@ import { z } from "zod";
 import type { OptimizerResult, OptimizerSearchOptions } from "../../optimizer";
 import type { WorldData } from "../../shared/types";
 import { getWorld } from "../database/repositories/world-repository";
-import { OptimizerTimeoutError, runOptimizerInWorker } from "../services/optimizer-worker-runner";
+import {
+  OptimizerTimeoutError,
+  runOptimizerInWorker,
+  type OptimizerWorkerRunnerOptions,
+} from "../services/optimizer-worker-runner";
 import { durationSchema } from "../../shared/schemas/common.schema";
 
 const optimizerRequestSchema = z.object({
@@ -11,13 +15,18 @@ const optimizerRequestSchema = z.object({
   beamWidth: z.number().int().min(1).max(2_000).optional(),
   maxSteps: z.number().int().min(1).max(500).optional(),
   maxExpandedStates: z.number().int().min(1).max(500_000).optional(),
+  timeoutSeconds: z.number().int().min(1).max(600).optional(),
   villageResetRemaining: z.record(z.string(), durationSchema.refine(
     (duration) => duration.days > 0 || duration.hours > 0,
     "Current reset remaining must be greater than zero",
   )).optional(),
 }).strict();
 
-export type OptimizerRunner = (world: WorldData, options: OptimizerSearchOptions) => Promise<OptimizerResult>;
+export type OptimizerRunner = (
+  world: WorldData,
+  options: OptimizerSearchOptions,
+  runnerOptions?: OptimizerWorkerRunnerOptions,
+) => Promise<OptimizerResult>;
 
 export function createOptimizerRouter(runner: OptimizerRunner = runOptimizerInWorker) {
   const router = Router();
@@ -48,7 +57,9 @@ export function createOptimizerRouter(runner: OptimizerRunner = runOptimizerInWo
         ),
       };
       const validatedOptions = optimizerRequestSchema.parse(options);
-      res.json(await runner(world, validatedOptions));
+      res.json(await runner(world, validatedOptions, {
+        timeoutMs: parsed.data.timeoutSeconds === undefined ? undefined : parsed.data.timeoutSeconds * 1_000,
+      }));
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ error: "Persisted optimization settings exceed safe API limits" });

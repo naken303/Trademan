@@ -3,20 +3,20 @@
 ## Last Updated
 
 - Date: 2026-09-12
-- Commit: This commit (`Redesign village reset setup UI`)
+- Commit: Not committed (working tree)
 - Branch: main
 
 ## Current Phase
 
-- Phase: Targeted Current Reset UX correction complete; release verification pending
-- Current Task: Shared visual Village Current Reset setup for Simulation and Optimizer
+- Phase: Optimizer runtime safety hardening complete; release verification pending
+- Current Task: Bound Optimizer search-state memory
 - Task Status: `completed`
 
 ## Repository Status
 
-- Working Tree: Tracked files clean after this commit; pre-existing untracked asset directories remain (`corrected-set-01/`, `item-crops/`, and `sample-crops/`).
-- Latest Commit: This commit (`Redesign village reset setup UI`).
-- Notes: Simulation and Optimizer now share one responsive visual reset-setup component; no domain, API, persistence, or SQLite contract changed.
+- Working Tree: Modified Optimizer UI/API route/tests, Product form, shared E2E coverage, and this status note; pre-existing untracked asset directories remain (`corrected-set-01/`, `item-crops/`, and `sample-crops/`).
+- Latest Commit: `4179a36` (`Redesign village reset setup UI`).
+- Notes: Optimizer runs accept a user-selected 1–600 second timeout; the search now bounds retained candidates and keeps only the current frontier cache to avoid heap growth. The earlier uncommitted Product category dropdown change remains present.
 
 ## Verification
 
@@ -33,9 +33,9 @@
 - Command: `npm run test`
 - Status: `PASS`
 - Date: 2026-09-12
-- Tests: 21 test files passed; 94 tests passed.
+- Tests: 21 test files passed; 95 tests passed.
 - Error Summary: None
-- Details: 21 Vitest files and 94 tests completed successfully, including five focused reset-draft mapping and local-validation tests.
+- Details: 21 Vitest files and 95 tests completed successfully, including the run-specific timeout API boundary test.
 
 ### Lint
 
@@ -50,7 +50,7 @@
 - Command: `npm run e2e`
 - Status: `PASS`
 - Date: 2026-09-12
-- Details: 4 Playwright flows passed using isolated temporary SQLite and backup paths; reset coverage verifies shared visual cards, temporary Simulation/Optimizer values, two Optimizer runs, payload mapping, no Village write, and no page errors.
+- Details: 4 Playwright flows passed using isolated temporary SQLite and backup paths; Optimizer UI coverage verifies the selected runtime timeout is sent to the API.
 
 ### Optimizer Worker Smoke
 
@@ -61,10 +61,10 @@
 
 ## Changes In Last Task
 
-- Files changed: shared Village reset setup component/model/CSS, Simulation page/store/CSS, Optimizer page/CSS, global theme selector, focused tests, E2E, and this status note.
-- What changed: Each Village is now a visual reset card with image fallback, prominent name, read-only reset cycle, compact Days/Hours inputs, and local validation in a responsive shared grid.
-- Why: Correct the broken Current Reset presentation while keeping the existing temporary per-run contract unchanged.
-- Behavior affected: Simulation setup and new-run flow, Optimizer search/setup hierarchy, responsive reset editing, and validation feedback only.
+- Files changed: Optimizer search, Optimizer page/client API/server route, Optimizer Worker/API test, shared E2E flow, and this status note.
+- What changed: Added a per-run Runtime timeout field and bounded candidate/cache retention per search depth.
+- Why: Large valid search settings could exceed the fixed timeout and retain enough state to exhaust the Worker heap.
+- Behavior affected: Optimizer runs can choose a longer or shorter timeout while retaining a bounded search-state footprint; no trading rules or persistence changed.
 
 ## Known Issues
 
@@ -107,6 +107,9 @@
 - Products support optional Supply/Demand price defaults through schema, SQLite migration `004_product_base_prices.sql`, CRUD, import/export, seed, and UI; the Product Palette supports searchable draggable Images/Details grids.
 - World routes use one custom bidirectional edge per village pair with smart top/right/bottom/left attachments, compact duration labels, arrowheads at both ends, and stable selected geometry.
 - Simulation and Optimizer share a responsive Village Current Reset card/grid with per-card validation and accessible Village-specific input labels.
+- Product Management provides a controlled Military/Domestic/Industrial/Neutral category dropdown while preserving existing legacy category strings during edit.
+- Optimizer runtime timeout is configurable per run from 1–600 seconds through the UI/API while retaining a 30-second default.
+- Optimizer candidate retention is bounded to eight times beam width per depth, and cache entries are retained only for the selected frontier to prevent unbounded Worker heap growth.
 
 ## Remaining Work
 
@@ -138,6 +141,7 @@
 - Production optimization remains bounded beam search: accumulated realized profit is primary, unsold inventory is not realized profit, continuous mode is tie-break only, and exact global optimality is not guaranteed.
 - Identical valid WorldData/options produce the same plan and material final state; only `statistics.elapsedMs` is wall-clock dependent.
 - Search limits (`periodDays`, `beamWidth`, `maxSteps`, and `maxExpandedStates`) bound runtime/state growth; the cache remains isolated per run/Worker.
+- Runtime timeout is a non-persisted per-run API option (`timeoutSeconds`, 1–600); the server converts it to the Worker runner's millisecond limit, and omission preserves the 30-second default.
 - A deliberately tiny exhaustive helper exists only in optimizer tests to compare maximum realized profit on safely bounded worlds; it is not exported to production.
 - Route logical uniqueness is an unordered village pair; one record contains the forward duration and optional return duration. Market logical uniqueness is `villageId + productId + side`, so Supply and Demand may coexist.
 - Canvas route/market mutations call existing client APIs and reload authoritative WorldData only after server success; cancel never persists temporary interaction state.
@@ -161,10 +165,10 @@
 - Product create requests omit `id`; SQLite-backed IDs use monotonic `P000001` formatting while legacy IDs such as `MILK` remain unchanged and updateable.
 - Current Reset card edits remain client-local until Start Simulation or Run Optimizer; E2E verified that editing does not issue Village persistence requests.
 - Responsive browser inspection passed at 1440, 1024, 768, and 390 px for both setup pages, including local error presentation and Optimizer results; no page-level horizontal overflow was observed.
-- Latest verification: build PASS, 21 Vitest files/94 tests PASS, lint PASS, and 4 isolated Playwright tests PASS. A final release verification is the next task.
+- Latest verification: build PASS, 21 Vitest files/95 tests PASS, lint PASS, and 4 isolated Playwright tests PASS. A final release verification is the next task.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-12 | This commit | PASS | PASS | PASS | PASS | Shared reset-card UX: 21 Vitest files/94 tests, 4 isolated Playwright flows, and 1440/1024/768/390 px browser inspection passed. |
+| 2026-09-12 | Uncommitted | PASS | PASS | PASS | PASS | Product category dropdown and configurable Optimizer timeout: 21 Vitest files/95 tests and 4 isolated Playwright flows passed. |
