@@ -3,7 +3,7 @@
 ## Last Updated
 
 - Date: 2026-09-13
-- Commit: Not committed (working tree)
+- Commit: `b112ff4` (`Reduce optimizer memory and add graceful brake`)
 - Branch: main
 
 ## Current Phase
@@ -14,8 +14,8 @@
 
 ## Repository Status
 
-- Working Tree: Modified Optimizer UI/API route/tests, Product form, shared E2E coverage, and this status note; pre-existing untracked asset directories remain (`corrected-set-01/`, `item-crops/`, and `sample-crops/`).
-- Latest Commit: `4179a36` (`Redesign village reset setup UI`).
+- Working Tree: Clean after optimizer job commit.
+- Latest Commit: `b112ff4` (`Reduce optimizer memory and add graceful brake`).
 - Notes: The fixed timeout has been removed. Optimizer execution now uses one active server-side job, worker progress polling, cooperative Brake, and a disposable SQLite dominance store in the system temp directory.
 
 ## Verification
@@ -171,4 +171,4 @@
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-13 | Uncommitted | PASS | PASS | PASS | PASS | Optimizer job/Brake architecture: 21 Vitest files/93 tests and 4 isolated Playwright flows passed. |
+| 2026-09-13 | b112ff4 | PASS | PASS | PASS | PASS | Optimizer job/Brake architecture: 21 Vitest files/93 tests and 4 isolated Playwright flows passed. |
