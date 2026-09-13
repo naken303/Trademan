@@ -41,6 +41,12 @@ export interface OptimizerSearchStatistics {
   generatedStates: number;
   deduplicatedStates: number;
   maxFrontierSize: number;
+  currentDepth: number;
+  currentFrontierSize: number;
+  bestAccumulatedProfit: number;
+  peakHeapUsedBytes: number;
+  peakRssBytes: number;
+  terminationReason: "completed" | "brake" | "maxSteps" | "maxExpandedStates" | "frontierExhausted";
   elapsedMs: number;
 }
 
@@ -55,8 +61,10 @@ export interface OptimizerResult {
 export interface OptimizerWorkerRequest {
   world: WorldData;
   options: OptimizerSearchOptions;
+  brakeBuffer?: SharedArrayBuffer;
 }
 
 export type OptimizerWorkerResponse =
   | { ok: true; result: OptimizerResult }
-  | { ok: false; error: { message: string } };
+  | { ok: false; error: { message: string } }
+  | { type: "progress"; statistics: OptimizerSearchStatistics };

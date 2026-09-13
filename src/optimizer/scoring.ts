@@ -1,5 +1,6 @@
 import type { SimulationState, WorldData } from "../shared/types";
 import type { OptimizerPlanStep } from "./types";
+import type { DominanceScore } from "./state-store";
 
 export interface ScoredSearchState {
   state: SimulationState;
@@ -33,6 +34,16 @@ export function compareForFrontier(world: WorldData, left: ScoredSearchState, ri
     || (world.player.continuousMode ? left.tradeActions - right.tradeActions : 0)
     || compareNumber(left.state.player.money, right.state.player.money)
     || right.plan.length - left.plan.length;
+}
+
+export function createDominanceScore(world: WorldData, candidate: ScoredSearchState): DominanceScore {
+  return {
+    accumulatedProfit: candidate.state.accumulatedProfit,
+    liquidationPotential: liquidationPotential(world, candidate),
+    tradeActions: candidate.tradeActions,
+    playerMoney: candidate.state.player.money,
+    planLength: candidate.plan.length,
+  };
 }
 
 export function compareForResult(world: WorldData, left: ScoredSearchState, right: ScoredSearchState): number {

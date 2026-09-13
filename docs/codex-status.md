@@ -2,21 +2,21 @@
 
 ## Last Updated
 
-- Date: 2026-09-12
+- Date: 2026-09-13
 - Commit: Not committed (working tree)
 - Branch: main
 
 ## Current Phase
 
-- Phase: Optimizer runtime safety hardening complete; release verification pending
-- Current Task: Bound Optimizer search-state memory
+- Phase: Optimizer job architecture in progress
+- Current Task: Job-based execution with cooperative Brake
 - Task Status: `completed`
 
 ## Repository Status
 
 - Working Tree: Modified Optimizer UI/API route/tests, Product form, shared E2E coverage, and this status note; pre-existing untracked asset directories remain (`corrected-set-01/`, `item-crops/`, and `sample-crops/`).
 - Latest Commit: `4179a36` (`Redesign village reset setup UI`).
-- Notes: Optimizer runs accept a user-selected 1–600 second timeout; the search now bounds retained candidates and keeps only the current frontier cache to avoid heap growth. The earlier uncommitted Product category dropdown change remains present.
+- Notes: The fixed timeout has been removed. Optimizer execution now uses one active server-side job, worker progress polling, cooperative Brake, and a disposable SQLite dominance store in the system temp directory.
 
 ## Verification
 
@@ -33,9 +33,9 @@
 - Command: `npm run test`
 - Status: `PASS`
 - Date: 2026-09-12
-- Tests: 21 test files passed; 95 tests passed.
+- Tests: 21 test files passed; 93 tests passed.
 - Error Summary: None
-- Details: 21 Vitest files and 95 tests completed successfully, including the run-specific timeout API boundary test.
+- Details: 21 Vitest files and 93 tests completed successfully, including optimizer job lifecycle and cooperative Brake coverage.
 
 ### Lint
 
@@ -50,7 +50,7 @@
 - Command: `npm run e2e`
 - Status: `PASS`
 - Date: 2026-09-12
-- Details: 4 Playwright flows passed using isolated temporary SQLite and backup paths; Optimizer UI coverage verifies the selected runtime timeout is sent to the API.
+- Details: 4 Playwright flows passed using isolated temporary SQLite and backup paths; Optimizer UI coverage uses the job start/poll flow.
 
 ### Optimizer Worker Smoke
 
@@ -62,9 +62,9 @@
 ## Changes In Last Task
 
 - Files changed: Optimizer search, Optimizer page/client API/server route, Optimizer Worker/API test, shared E2E flow, and this status note.
-- What changed: Added a per-run Runtime timeout field and bounded candidate/cache retention per search depth.
-- Why: Large valid search settings could exceed the fixed timeout and retain enough state to exhaust the Worker heap.
-- Behavior affected: Optimizer runs can choose a longer or shorter timeout while retaining a bounded search-state footprint; no trading rules or persistence changed.
+- What changed: Replaced timeout-bound request execution with a single active optimizer job and cooperative Brake; historical dominance metadata is stored in a disposable temporary SQLite file.
+- Why: Valid long searches must not be ended by a wall-clock timeout or retain every complete search node in Worker heap.
+- Behavior affected: Optimizer now starts/polls jobs, shows progress, and Brake returns the best valid result found so far; no trading or persistence rules changed.
 
 ## Known Issues
 
@@ -165,10 +165,10 @@
 - Product create requests omit `id`; SQLite-backed IDs use monotonic `P000001` formatting while legacy IDs such as `MILK` remain unchanged and updateable.
 - Current Reset card edits remain client-local until Start Simulation or Run Optimizer; E2E verified that editing does not issue Village persistence requests.
 - Responsive browser inspection passed at 1440, 1024, 768, and 390 px for both setup pages, including local error presentation and Optimizer results; no page-level horizontal overflow was observed.
-- Latest verification: build PASS, 21 Vitest files/95 tests PASS, lint PASS, and 4 isolated Playwright tests PASS. A final release verification is the next task.
+- Latest verification: build PASS, 21 Vitest files/93 tests PASS, lint PASS, and 4 isolated Playwright tests PASS. Remaining limitation: no committed stress benchmark fixture yet.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-12 | Uncommitted | PASS | PASS | PASS | PASS | Product category dropdown and configurable Optimizer timeout: 21 Vitest files/95 tests and 4 isolated Playwright flows passed. |
+| 2026-09-13 | Uncommitted | PASS | PASS | PASS | PASS | Optimizer job/Brake architecture: 21 Vitest files/93 tests and 4 isolated Playwright flows passed. |

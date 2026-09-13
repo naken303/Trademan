@@ -89,7 +89,7 @@ test("simulation and optimizer share visual run-specific reset setup", async ({ 
   page.on("pageerror", (error) => pageErrors.push(error.message));
   page.on("request", (request) => {
     if (/\/api\/villages(?:\/|$)/.test(request.url()) && request.method() !== "GET") villageWrites.push(`${request.method()} ${request.url()}`);
-    if (request.url().endsWith("/api/optimizer/run") && request.method() === "POST") optimizerPayloads.push(request.postDataJSON());
+    if (request.url().endsWith("/api/optimizer/runs") && request.method() === "POST") optimizerPayloads.push(request.postDataJSON());
   });
   await page.goto("/simulator");
   const simulationCards = page.locator(".village-reset-card");
@@ -114,10 +114,9 @@ test("simulation and optimizer share visual run-specific reset setup", async ({ 
   await page.getByLabel("Beam width").fill("20");
   await page.getByLabel("Maximum plan steps").fill("8");
   await page.getByLabel("Maximum expanded states").fill("500");
-  await page.getByLabel("Runtime timeout (seconds)").fill("45");
   await page.getByRole("button", { name: "Run Optimizer" }).click();
   await expect(page.getByText("Best realized profit")).toBeVisible({ timeout: 30_000 });
-  expect(optimizerPayloads[0]).toMatchObject({ timeoutSeconds: 45, villageResetRemaining: { A: { days: 1, hours: 3 } } });
+  expect(optimizerPayloads[0]).toMatchObject({ villageResetRemaining: { A: { days: 1, hours: 3 } } });
   await page.getByLabel("Village A Current Reset Hours").fill("5");
   await page.getByRole("button", { name: "Run Optimizer" }).click();
   await expect.poll(() => optimizerPayloads.length).toBe(2);

@@ -6,9 +6,9 @@ import { marketsRouter } from "./routes/markets";
 import { productsRouter } from "./routes/products";
 import { routesRouter } from "./routes/routes";
 import { worldRouter } from "./routes/world";
-import { createOptimizerRouter, type OptimizerRunner } from "./routes/optimizer";
+import { createOptimizerRouter } from "./routes/optimizer";
 
-export function createApp(options: { optimizerRunner?: OptimizerRunner } = {}) {
+export function createApp() {
   initializeDatabase();
 
   const app = express();
@@ -24,7 +24,7 @@ export function createApp(options: { optimizerRunner?: OptimizerRunner } = {}) {
   app.use("/api/products", productsRouter);
   app.use("/api/markets", marketsRouter);
   app.use("/api/routes", routesRouter);
-  app.use("/api/optimizer", createOptimizerRouter(options.optimizerRunner));
+  app.use("/api/optimizer", createOptimizerRouter());
 
   return app;
 }

@@ -2,14 +2,21 @@ import { canAddInventory } from "../domain/inventory";
 import { getTravelTime } from "../domain/route";
 import type { Market, Product, SimulationState, WorldData } from "../shared/types";
 import { createInitialSimulationState, SimulationEngine } from "../simulation";
-import { compareForFrontier, compareForResult, type ScoredSearchState } from "./scoring";
+import { compareForFrontier, compareForResult, createDominanceScore, type ScoredSearchState } from "./scoring";
 import { createOptimizerStateSignature } from "./state-signature";
+import type { OptimizerStateStore } from "./state-store";
 import type {
   OptimizerAction, OptimizerResult, OptimizerSearchOptions,
-  ResolvedOptimizerSearchOptions,
+  ResolvedOptimizerSearchOptions, OptimizerSearchStatistics,
 } from "./types";
 
 type SearchNode = ScoredSearchState;
+
+export interface OptimizerRunControl {
+  shouldBrake?: () => boolean;
+  onProgress?: (statistics: import("./types").OptimizerSearchStatistics) => void;
+  stateStore?: OptimizerStateStore;
+}
 
 function resolveOptions(world: WorldData, options: OptimizerSearchOptions): ResolvedOptimizerSearchOptions {
   const periodDays = options.periodDays ?? world.optimization.periodDays;
@@ -102,7 +109,7 @@ function sortCandidates(world: WorldData, candidates: SearchNode[]): SearchNode[
     || actionKey(left.plan.at(-1)!.action).localeCompare(actionKey(right.plan.at(-1)!.action)));
 }
 
-export function runOptimizer(world: WorldData, options: OptimizerSearchOptions = {}): OptimizerResult {
+export function runOptimizer(world: WorldData, options: OptimizerSearchOptions = {}, control: OptimizerRunControl = {}): OptimizerResult {
   const startedAt = performance.now();
   const resolved = resolveOptions(world, options);
   const initialState = createInitialSimulationState(world, {
@@ -117,14 +124,25 @@ export function runOptimizer(world: WorldData, options: OptimizerSearchOptions =
   let best = initial;
   const cache = new Map([[createOptimizerStateSignature(initialState), initial]]);
   const maxCandidatesPerDepth = resolved.beamWidth * 8;
-  const statistics = { expandedStates: 0, generatedStates: 0, deduplicatedStates: 0, maxFrontierSize: 1, elapsedMs: 0 };
+  const statistics: OptimizerSearchStatistics = { expandedStates: 0, generatedStates: 0, deduplicatedStates: 0, maxFrontierSize: 1, currentDepth: 0, currentFrontierSize: 1, bestAccumulatedProfit: 0, peakHeapUsedBytes: 0, peakRssBytes: 0, terminationReason: "completed", elapsedMs: 0 };
+  let terminationReason: OptimizerSearchStatistics["terminationReason"] = "completed";
+  const report = () => {
+    if (control.onProgress) { const memory = process.memoryUsage(); statistics.peakHeapUsedBytes = Math.max(statistics.peakHeapUsedBytes, memory.heapUsed); statistics.peakRssBytes = Math.max(statistics.peakRssBytes, memory.rss); }
+    statistics.bestAccumulatedProfit = best.state.accumulatedProfit;
+    control.onProgress?.({ ...statistics, terminationReason, elapsedMs: performance.now() - startedAt });
+  };
+  control.stateStore?.accepts(createOptimizerStateSignature(initialState), createDominanceScore(world, initial));
 
   for (let depth = 0; depth < resolved.maxSteps && frontier.length > 0; depth += 1) {
+    statistics.currentDepth = depth;
+    if (control.shouldBrake?.()) { terminationReason = "brake"; break; }
     const nextBySignature = new Map<string, SearchNode>();
     for (const node of frontier) {
+      if (control.shouldBrake?.()) { terminationReason = "brake"; break; }
       if (statistics.expandedStates >= resolved.maxExpandedStates) break;
       statistics.expandedStates += 1;
       for (const action of generateActions(world, node.state).sort((left, right) => actionKey(left).localeCompare(actionKey(right)))) {
+        if (control.shouldBrake?.()) { terminationReason = "brake"; break; }
         let state: SimulationState;
         try { state = transition(world, node.state, action); } catch { continue; }
         if (absoluteHour(state) > deadline) continue;
@@ -150,14 +168,27 @@ export function runOptimizer(world: WorldData, options: OptimizerSearchOptions =
           for (const retainedCandidate of retained) nextBySignature.set(createOptimizerStateSignature(retainedCandidate.state), retainedCandidate);
         }
       }
+      if (terminationReason === "brake") break;
     }
-    frontier = sortCandidates(world, [...nextBySignature.values()]).slice(0, resolved.beamWidth);
+    if (terminationReason === "brake") break;
+    const survivors = [...nextBySignature.values()].filter((candidate) => {
+      const accepted = control.stateStore?.accepts(createOptimizerStateSignature(candidate.state), createDominanceScore(world, candidate)) ?? true;
+      if (!accepted) statistics.deduplicatedStates += 1;
+      return accepted;
+    });
+    frontier = sortCandidates(world, survivors).slice(0, resolved.beamWidth);
     cache.clear();
     for (const node of frontier) cache.set(createOptimizerStateSignature(node.state), node);
     statistics.maxFrontierSize = Math.max(statistics.maxFrontierSize, frontier.length);
-    if (statistics.expandedStates >= resolved.maxExpandedStates) break;
+    statistics.currentFrontierSize = frontier.length;
+    report();
+    if (statistics.expandedStates >= resolved.maxExpandedStates) { terminationReason = "maxExpandedStates"; break; }
   }
 
   statistics.elapsedMs = performance.now() - startedAt;
+  if (terminationReason === "completed") terminationReason = frontier.length === 0 ? "frontierExhausted" : "maxSteps";
+  statistics.terminationReason = terminationReason;
+  statistics.bestAccumulatedProfit = best.state.accumulatedProfit;
+  report();
   return { plan: best.plan, finalState: best.state, accumulatedProfit: best.state.accumulatedProfit, options: resolved, statistics };
 }

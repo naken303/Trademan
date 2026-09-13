@@ -12,11 +12,11 @@ import {
   type VillageResetDraft,
 } from "../../components/village-reset-setup-model";
 import { getWorld } from "../world/world-api";
-import { runOptimizer, type OptimizerRunRequest } from "./optimizer-api";
+import { brakeOptimizer, getCurrentOptimizerRun, getOptimizerRun, startOptimizer, type OptimizerJobResponse, type OptimizerRunRequest } from "./optimizer-api";
 import "./OptimizerPage.css";
 import { formatDuration } from "../../utils/format";
 
-const limits = { periodDays: 365, beamWidth: 2_000, maxSteps: 500, maxExpandedStates: 500_000, timeoutSeconds: 600 } as const;
+const limits = { periodDays: 365, beamWidth: 2_000, maxSteps: 500, maxExpandedStates: 500_000 } as const;
 type FormValues = Record<keyof typeof limits, string>;
 const timeLabel = (time: { day: number; hour: number }) => `Day ${time.day}, ${time.hour}:00`;
 const durationLabel = (duration?: { days: number; hours: number }) => duration ? formatDuration(duration.days, duration.hours) : "Unknown duration";
@@ -26,7 +26,6 @@ function initialForm(world: WorldData): FormValues {
     periodDays: String(world.optimization.periodDays), beamWidth: String(world.optimization.beamWidth),
     maxSteps: String(world.optimization.maxSteps),
     maxExpandedStates: String(Math.min(limits.maxExpandedStates, world.optimization.beamWidth * world.optimization.maxSteps * 4)),
-    timeoutSeconds: "30",
   };
 }
 
@@ -69,6 +68,7 @@ export function OptimizerPage() {
   const [showResetErrors, setShowResetErrors] = useState(false);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [job, setJob] = useState<OptimizerJobResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
@@ -78,7 +78,8 @@ export function OptimizerPage() {
   }
   useEffect(() => { getWorld().then((loaded) => { setWorld(loaded); setValues(initialForm(loaded)); setResets(createVillageResetDraft(loaded.villages)); setError(null); })
     .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Unable to load optimizer settings."))
-    .finally(() => setLoading(false)); }, []);
+    .finally(() => setLoading(false)); void getCurrentOptimizerRun().then(setJob).catch(() => undefined); }, []);
+  useEffect(() => { if (!job || (job.status !== "starting" && job.status !== "running" && job.status !== "braking")) return; const timer = window.setInterval(() => { void getOptimizerRun(job.runId).then((next) => { setJob(next); if (next.result) { setResult(next.result); setRunning(false); } }).catch((cause: unknown) => { setError(cause instanceof Error ? cause.message : "Optimizer failed."); setRunning(false); }); }, 750); return () => window.clearInterval(timer); }, [job]);
 
   const usedCrates = useMemo(() => result && world ? getInventoryCrates(result.finalState.player.inventory, world.products) : 0, [result, world]);
   async function submit(event: FormEvent) {
@@ -90,7 +91,7 @@ export function OptimizerPage() {
       if (!initialization) throw new Error("Check the highlighted Current Reset values.");
       const options = { ...validate(values), ...initialization };
       setRunning(true); setError(null); setResult(null);
-      setResult(await runOptimizer(options));
+      setJob(await startOptimizer(options));
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Optimizer failed."); }
     finally { setRunning(false); }
   }
@@ -100,21 +101,21 @@ export function OptimizerPage() {
   if (world.villages.length === 0) return <section className="optimizer-page"><header><h2>Optimizer</h2><p>Best plan found within the selected search limits.</p></header><div className="page-state">Create at least one Village before running the optimizer.</div></section>;
   const villageName = (id: string) => world.villages.find((item) => item.id === id)?.name ?? `Missing village (${id})`;
   const productName = (id: string) => world.products.find((item) => item.id === id)?.name ?? `Missing product (${id})`;
-  const fields: [keyof FormValues, string][] = [["periodDays", "Optimization period (days)"], ["beamWidth", "Beam width"], ["maxSteps", "Maximum plan steps"], ["maxExpandedStates", "Maximum expanded states"], ["timeoutSeconds", "Runtime timeout (seconds)"]];
+  const fields: [keyof FormValues, string][] = [["periodDays", "Optimization period (days)"], ["beamWidth", "Beam width"], ["maxSteps", "Maximum plan steps"], ["maxExpandedStates", "Maximum expanded states"]];
   return <section className="optimizer-page">
     <header><h2>Optimizer</h2><p>Best plan found within the selected search limits. Exact global optimality is not guaranteed.</p></header>
     <form className="optimizer-form" onSubmit={submit}>
       <section className="optimizer-configuration" aria-labelledby="optimizer-search-heading">
-        <div className="optimizer-section-heading"><h3 id="optimizer-search-heading">Search Configuration</h3><p>Bound the search to keep each run predictable.</p></div>
+        <div className="optimizer-section-heading"><h3 id="optimizer-search-heading">Search Configuration</h3><p>Higher Beam width explores more alternatives but uses more memory. Use Brake to keep the best result found so far.</p></div>
         <div className="optimizer-search-grid">{fields.map(([key, label]) => <label key={key}>{label}<input aria-label={label} type="number" min="1" max={limits[key]} step="1" value={values[key]} disabled={running} onChange={(event) => setValues({ ...values, [key]: event.target.value })} /></label>)}</div>
         <div className="optimizer-mode"><strong>Continuous mode: {world.player.continuousMode ? "On" : "Off"}</strong><small>Used only as a tie-break preference; realized profit remains the primary goal.</small></div>
       </section>
       <VillageResetSetup villages={world.villages} values={resets} onChange={setResets} disabled={running} showAllErrors={showResetErrors} />
-      <div className="optimizer-run-action"><button type="submit" disabled={running}>{running ? "Running optimizer..." : "Run Optimizer"}</button></div>
+      <div className="optimizer-run-action"><button type="submit" disabled={running}>{running ? "Running optimizer..." : "Run Optimizer"}</button>{running && job && <button type="button" disabled={job.status === "braking"} onClick={() => { void brakeOptimizer(job.runId).then(setJob).catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Unable to brake optimizer.")); }}>{job.status === "braking" ? "Braking..." : "Brake"}</button>}</div>
     </form>
     {error && <div className="page-alert" role="alert">{error}</div>}
     {!result && !running && !error && <div className="page-state">Set the search limits, then run the optimizer to find a trade plan.</div>}
-    {running && <div className="page-state" role="status">Searching trade and travel plans...</div>}
+    {running && <div className="page-state" role="status">{job?.status === "braking" ? "Braking after the current safe search boundary..." : "Running optimizer..."}{job?.progress && <small> Elapsed {(job.progress.elapsedMs / 1000).toFixed(1)}s · Expanded {job.progress.expandedStates.toLocaleString()} · Generated {job.progress.generatedStates.toLocaleString()} · Frontier {job.progress.currentFrontierSize.toLocaleString()} · Best profit {job.progress.bestAccumulatedProfit.toLocaleString()}</small>}</div>}
     {result && <>
       <div className="optimizer-summary">
         <div><span>Best realized profit</span><strong>{result.accumulatedProfit.toLocaleString()} {world.settings.currency}</strong></div>
@@ -123,7 +124,8 @@ export function OptimizerPage() {
         <div><span>Simulation time</span><strong>{timeLabel({ day: world.simulation.startDay, hour: world.simulation.startHour })} → {timeLabel(result.finalState.time)}</strong></div>
         <div><span>Plan actions</span><strong>{result.plan.length}</strong></div><div><span>Search time</span><strong>{result.statistics.elapsedMs.toFixed(1)} ms</strong></div>
       </div>
-      {result.accumulatedProfit <= 0 && <div className="optimizer-notice">No profitable plan was found within these search limits.</div>}
+      {result.statistics.terminationReason === "brake" && <div className="optimizer-notice">Best result found so far. Search was stopped with Brake.</div>}
+      {result.accumulatedProfit <= 0 && <div className="optimizer-notice">No profitable plan was found within the explored states.</div>}
       <div className="optimizer-results-grid"><section className="optimizer-card"><h3>Best plan</h3>{result.plan.length === 0 ? <p>No actions were selected.</p> : <ol className="optimizer-plan">{result.plan.map((step, index) => <StepRow key={index} step={step} index={index} world={world} previousVillageId={index === 0 ? world.player.currentVillageId : result.plan[index - 1].villageId} previousProfit={index === 0 ? 0 : result.plan[index - 1].accumulatedProfit} />)}</ol>}</section>
         <div className="optimizer-side"><section className="optimizer-card"><h3>Final state</h3><dl><div><dt>Village</dt><dd>{villageName(result.finalState.player.location)}</dd></div><div><dt>Money</dt><dd>{result.finalState.player.money.toLocaleString()} {world.settings.currency}</dd></div><div><dt>Realized profit</dt><dd>{result.finalState.accumulatedProfit.toLocaleString()} {world.settings.currency}</dd></div><div><dt>Crates</dt><dd>{usedCrates} used / {world.player.inventoryCapacityCrates} capacity</dd></div><div><dt>Time</dt><dd>{timeLabel(result.finalState.time)}</dd></div></dl><h4>Inventory</h4>{result.finalState.player.inventory.length === 0 ? <p>Inventory is empty.</p> : <ul>{result.finalState.player.inventory.map((item) => <li key={item.productId}>{productName(item.productId)}: {item.quantity.toLocaleString()}</li>)}</ul>}</section>
           <section className="optimizer-card optimizer-statistics"><h3>Search statistics</h3><dl><div><dt>Expanded</dt><dd>{result.statistics.expandedStates.toLocaleString()}</dd></div><div><dt>Generated</dt><dd>{result.statistics.generatedStates.toLocaleString()}</dd></div><div><dt>Deduplicated</dt><dd>{result.statistics.deduplicatedStates.toLocaleString()}</dd></div><div><dt>Maximum frontier</dt><dd>{result.statistics.maxFrontierSize.toLocaleString()}</dd></div><div><dt>Elapsed</dt><dd>{result.statistics.elapsedMs.toFixed(1)} ms</dd></div></dl></section></div></div>
