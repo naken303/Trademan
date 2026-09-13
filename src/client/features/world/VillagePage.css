@@ -163,3 +163,5 @@
   .village-table td:first-child strong, .village-table td:first-child small { grid-column: 2; }
   .village-table td:last-child { align-items: center; }
 }
+.management-search { display: grid; gap: 5px; margin-bottom: 12px; max-width: 340px; font-size: .82rem; }
+.management-search input { min-height: 34px; padding: 5px 8px; }

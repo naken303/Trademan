@@ -31,6 +31,7 @@ interface WorldCanvasProps {
   onProductDrop: (productId: string, villageId: string) => void;
   onRouteConnect: (from: string, to: string) => void;
   onRouteEdit: (routeId: string) => void;
+  onRouteDelete: (routeId: string) => void;
 }
 
 function createNodes(world: WorldData, productDropActive: boolean, onProductDrop: WorldCanvasProps["onProductDrop"]): VillageNodeType[] {
@@ -61,7 +62,7 @@ const edgeTypes = {
   directionalRoute: DirectionalRouteEdge,
 };
 
-function createEdges(world: WorldData, nodes: VillageNodeType[], onRouteEdit: WorldCanvasProps["onRouteEdit"], selectedEdgeId: string | null): DirectionalRouteEdgeType[] {
+function createEdges(world: WorldData, nodes: VillageNodeType[], onRouteEdit: WorldCanvasProps["onRouteEdit"], onRouteDelete: WorldCanvasProps["onRouteDelete"], selectedEdgeId: string | null): DirectionalRouteEdgeType[] {
   const positions = new Map(nodes.map((node) => [node.id, node.position]));
 
   return world.routes.flatMap((route) => {
@@ -90,12 +91,13 @@ function createEdges(world: WorldData, nodes: VillageNodeType[], onRouteEdit: Wo
         ? `${formatRouteDuration(route.travelTime.days, route.travelTime.hours)} / ${formatRouteDuration(route.reverseTravelTime.days, route.reverseTravelTime.hours)}`
         : formatRouteDuration(route.travelTime.days, route.travelTime.hours),
       onEdit: onRouteEdit,
+      onDelete: onRouteDelete,
     },
   }];
   });
 }
 
-export function WorldCanvas({ world, productDropActive, onProductDrop, onRouteConnect, onRouteEdit }: WorldCanvasProps) {
+export function WorldCanvas({ world, productDropActive, onProductDrop, onRouteConnect, onRouteEdit, onRouteDelete }: WorldCanvasProps) {
   const updateVillagePosition = useWorldStore(
     (state) => state.updateVillagePosition,
   );
@@ -108,7 +110,7 @@ export function WorldCanvas({ world, productDropActive, onProductDrop, onRouteCo
     setNodes(createNodes(world, productDropActive, onProductDrop));
   }, [world, productDropActive, onProductDrop, setNodes]);
 
-  const edges = createEdges(world, nodes, onRouteEdit, selectedEdgeId);
+  const edges = createEdges(world, nodes, onRouteEdit, onRouteDelete, selectedEdgeId);
 
   const handleNodeDragStop = (
     _event: unknown,

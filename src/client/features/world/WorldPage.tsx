@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Market, Route } from "../../../shared/types";
 import { createMarket, updateMarket } from "../market/market-api";
-import { createRoute, updateRoute } from "../routes/route-api";
+import { createRoute, deleteRoute, updateRoute } from "../routes/route-api";
 import { WorldCanvas } from "./WorldCanvas";
 import { MarketAssignmentDialog, ProductPalette, RouteDialog } from "./WorldEditorTools";
 import { useWorldStore } from "./world-store";
@@ -25,6 +25,7 @@ export function WorldPage() {
     setRouteDraft({ from: existing?.from ?? from, to: existing?.to ?? to, existing });
   }, []);
   const editRoute = useCallback((routeId: string) => { const current = useWorldStore.getState().world; const existing = current?.routes.find((route) => route.id === routeId); if (existing) setRouteDraft({ from: existing.from, to: existing.to, existing }); }, []);
+  const removeRoute = useCallback(async (routeId: string) => { const current = useWorldStore.getState().world; const route = current?.routes.find((item) => item.id === routeId); if (!route || !window.confirm("Delete this route?")) return; try { await deleteRoute(routeId); await loadWorld(); } catch (cause) { useWorldStore.setState({ error: cause instanceof Error ? cause.message : "Unable to delete route." }); } }, [loadWorld]);
   const dropProduct = useCallback((productId: string, villageId: string) => { const current = useWorldStore.getState().world; setProductDragActive(false); if (current?.products.some((product) => product.id === productId) && current.villages.some((village) => village.id === villageId)) setMarketDraft({ productId, villageId }); }, []);
 
   if (loading && !world) return <div className="page-state">Loading world...</div>;
@@ -44,7 +45,7 @@ export function WorldPage() {
     <div className="world-toolbar"><div><button type="button" onClick={undo} disabled={!canUndo || loading}>Undo</button><button type="button" onClick={redo} disabled={!canRedo || loading}>Redo</button></div>
       <div><button type="button" className="secondary" onClick={cancelChanges} disabled={!hasUnsavedChanges || loading}>Cancel position changes</button><button onClick={() => void saveChanges()} disabled={!hasUnsavedChanges || loading}>{loading ? "Saving..." : "Save positions"}</button>{hasUnsavedChanges && <span className="unsaved-badge">Unsaved positions</span>}</div></div>
     {error && <div className="page-alert" role="alert">World update failed: {error}</div>}
-    <div className="world-editor"><ProductPalette products={world.products} onDragState={setProductDragActive} /><div className={productDragActive ? "canvas-shell dragging-product" : "canvas-shell"}><div className="canvas-hint"><strong>Directional routes</strong><span>Drag from a village edge to another village. Double-click a route to edit.</span></div><WorldCanvas world={world} productDropActive={productDragActive} onProductDrop={dropProduct} onRouteConnect={connectRoute} onRouteEdit={editRoute} /></div></div>
+    <div className="world-editor"><ProductPalette products={world.products} onDragState={setProductDragActive} /><div className={productDragActive ? "canvas-shell dragging-product" : "canvas-shell"}><div className="canvas-hint"><strong>Directional routes</strong><span>Drag from a village edge to another village. Double-click a route to edit; use × to delete.</span></div><WorldCanvas world={world} productDropActive={productDragActive} onProductDrop={dropProduct} onRouteConnect={connectRoute} onRouteEdit={editRoute} onRouteDelete={removeRoute} /></div></div>
     {routeDraft && <RouteDialog world={world} {...routeDraft} onCancel={() => setRouteDraft(null)} onSave={saveRoute} />}
     {marketDraft && <MarketAssignmentDialog world={world} {...marketDraft} onCancel={() => setMarketDraft(null)} onSave={saveMarket} />}
   </section>;

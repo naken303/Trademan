@@ -37,6 +37,8 @@ export function VillagePage() {
     setError,
   ] = useState("");
   const [currency, setCurrency] = useState("");
+  const [query, setQuery] = useState("");
+  const visibleVillages = villages.filter((village) => `${village.name} ${village.id}`.toLowerCase().includes(query.trim().toLowerCase()));
 
   const [
     showForm,
@@ -205,9 +207,10 @@ export function VillagePage() {
           <h2>Villages</h2>
 
           <span>
-            {villages.length} villages
+            {visibleVillages.length} of {villages.length} villages
           </span>
         </div>
+        <label className="management-search">Search villages<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name or ID" /></label>
 
         <div className="village-table-wrapper">
           <table className="village-table">
@@ -222,7 +225,7 @@ export function VillagePage() {
             </thead>
 
             <tbody>
-              {villages.map(
+              {visibleVillages.map(
                 (village) => (
                   <tr key={village.id}>
                     <td data-label="Village">
@@ -292,6 +295,7 @@ export function VillagePage() {
                   </td>
                 </tr>
               )}
+              {villages.length > 0 && visibleVillages.length === 0 && <tr><td colSpan={5} className="village-empty">No villages match the current search.</td></tr>}
             </tbody>
           </table>
         </div>

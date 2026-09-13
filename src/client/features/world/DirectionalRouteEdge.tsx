@@ -13,6 +13,7 @@ export interface DirectionalRouteEdgeData extends Record<string, unknown> {
   to: string;
   durationLabel: string;
   onEdit: (routeId: string) => void;
+  onDelete: (routeId: string) => void;
 }
 
 export type DirectionalRouteEdgeType = Edge<DirectionalRouteEdgeData, "directionalRoute">;
@@ -36,6 +37,10 @@ export function DirectionalRouteEdge({
   const editRoute = (event: MouseEvent) => {
     event.stopPropagation();
     data?.onEdit(routeId);
+  };
+  const deleteRoute = (event: MouseEvent) => {
+    event.stopPropagation();
+    data?.onDelete(routeId);
   };
 
   return (
@@ -67,6 +72,7 @@ export function DirectionalRouteEdge({
           onDoubleClick={editRoute}
         >
           {data?.durationLabel}
+          <button type="button" className="route-edge-delete" aria-label="Delete route" title="Delete route" onClick={deleteRoute}>×</button>
         </div>
       </EdgeLabelRenderer>
     </g>

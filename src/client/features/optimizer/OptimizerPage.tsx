@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { getInventoryCrates } from "../../../domain/inventory";
 import { getTravelTime } from "../../../domain/route";
-import type { OptimizerPlanStep, OptimizerResult } from "../../../optimizer";
+import type { OptimizerPlanStep } from "../../../optimizer";
 import type { WorldData } from "../../../shared/types";
 import {
   VillageResetSetup,
@@ -13,6 +13,7 @@ import {
 } from "../../components/village-reset-setup-model";
 import { getWorld } from "../world/world-api";
 import { brakeOptimizer, getCurrentOptimizerRun, getOptimizerRun, startOptimizer, type OptimizerJobResponse, type OptimizerRunRequest } from "./optimizer-api";
+import { useOptimizerResultStore } from "./optimizer-result-store";
 import "./OptimizerPage.css";
 import { formatDuration } from "../../utils/format";
 
@@ -69,7 +70,9 @@ function StepRow({ step, previousVillageId, previousProfit, world, index }: {
 export function OptimizerPage() {
   const [world, setWorld] = useState<WorldData | null>(null);
   const [values, setValues] = useState<FormValues | null>(null);
-  const [result, setResult] = useState<OptimizerResult | null>(null);
+  const result = useOptimizerResultStore((state) => state.result);
+  const setResult = useOptimizerResultStore((state) => state.setResult);
+  const clearResult = useOptimizerResultStore((state) => state.clearResult);
   const [resets, setResets] = useState<VillageResetDraft>({});
   const [showResetErrors, setShowResetErrors] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -85,7 +88,7 @@ export function OptimizerPage() {
   useEffect(() => { getWorld().then((loaded) => { setWorld(loaded); setValues(initialForm(loaded)); setResets(createVillageResetDraft(loaded.villages)); setError(null); })
     .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Unable to load optimizer settings."))
     .finally(() => setLoading(false)); void getCurrentOptimizerRun().then((active) => { setJob(active); setRunning(active.status === "starting" || active.status === "running" || active.status === "braking"); }).catch(() => undefined); }, []);
-  useEffect(() => { if (!job || (job.status !== "starting" && job.status !== "running" && job.status !== "braking")) return; const timer = window.setInterval(() => { void getOptimizerRun(job.runId).then((next) => { setJob(next); if (next.result) { setResult(next.result); setRunning(false); } }).catch((cause: unknown) => { setError(cause instanceof Error ? cause.message : "Optimizer failed."); setRunning(false); }); }, 750); return () => window.clearInterval(timer); }, [job]);
+  useEffect(() => { if (!job || (job.status !== "starting" && job.status !== "running" && job.status !== "braking")) return; const timer = window.setInterval(() => { void getOptimizerRun(job.runId).then((next) => { setJob(next); if (next.result) { setResult(next.result); setRunning(false); } }).catch((cause: unknown) => { setError(cause instanceof Error ? cause.message : "Optimizer failed."); setRunning(false); }); }, 750); return () => window.clearInterval(timer); }, [job, setResult]);
 
   const usedCrates = useMemo(() => result && world ? getInventoryCrates(result.finalState.player.inventory, world.products) : 0, [result, world]);
   async function submit(event: FormEvent) {
@@ -96,7 +99,7 @@ export function OptimizerPage() {
       setShowResetErrors(true);
       if (!initialization) throw new Error("Check the highlighted Current Reset values.");
       const options = { ...validate(values), ...initialization };
-      setRunning(true); setError(null); setResult(null);
+      setRunning(true); setError(null);
       setJob(await startOptimizer(options));
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Optimizer failed."); setRunning(false); }
   }
@@ -124,6 +127,7 @@ export function OptimizerPage() {
     {!result && !running && !error && <div className="page-state">Set the search limits, then run the optimizer to find a trade plan.</div>}
     {running && <div className="page-state" role="status">{job?.status === "braking" ? "Braking after the current safe search boundary..." : "Running optimizer..."}{job?.progress && <small> Elapsed {(job.progress.elapsedMs / 1000).toFixed(1)}s · Expanded {job.progress.expandedStates.toLocaleString()} · Generated {job.progress.generatedStates.toLocaleString()} · Frontier {job.progress.currentFrontierSize.toLocaleString()} · Best profit {job.progress.bestAccumulatedProfit.toLocaleString()}</small>}</div>}
     {result && <>
+      <div className="optimizer-results-heading"><h3>Optimizer Output</h3><button type="button" className="secondary" onClick={clearResult} disabled={running}>Delete output</button></div>
       <div className="optimizer-summary">
         <div><span>Best realized profit</span><strong>{result.accumulatedProfit.toLocaleString()} {world.settings.currency}</strong></div>
         <div><span>Final player money</span><strong>{result.finalState.player.money.toLocaleString()} {world.settings.currency}</strong></div>

@@ -9,6 +9,9 @@
 .route-form select, .route-form input { padding: 0.6rem; }
 .route-actions { display: flex; gap: 0.5rem; }
 .route-error { color: #b42318; }
+.management-filters { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: .75rem; margin-bottom: 1rem; }
+.management-filters label { display: grid; gap: .35rem; }
+.management-filters input { min-width: min(100%, 280px); }
 
 @media (max-width: 520px) {
   .route-panel thead { display: none; }

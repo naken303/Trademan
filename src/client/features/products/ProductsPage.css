@@ -6,6 +6,9 @@
 .products-error, .product-form-error { padding: var(--space-3); border: 1px solid #7f1d1d; border-radius: var(--radius-sm); background: #321722; color: #fecaca; }
 .products-empty { color: var(--color-text-secondary); text-align: center; }
 .products-table-heading { align-items: center; margin-bottom: var(--space-3); }
+.management-filters { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-3); margin-bottom: var(--space-3); }
+.management-filters label, .management-search { display: grid; gap: var(--space-1); color: var(--color-text-secondary); font-size: .78rem; }
+.management-filters input, .management-filters select, .management-search input { min-height: 34px; padding: 5px 8px; }
 .products-table-heading span { color: var(--color-text-secondary); }
 .products-table-wrapper { max-width: 100%; overflow-x: auto; }
 .products-table .numeric { text-align: right; white-space: nowrap; }

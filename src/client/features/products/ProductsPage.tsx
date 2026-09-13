@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { Product } from "../../../shared/types";
 import {
@@ -63,6 +63,10 @@ export function ProductsPage() {
   const [pageError, setPageError] =
     useState<string | null>(null);
   const [currency, setCurrency] = useState("");
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("");
+  const categories = useMemo(() => [...new Set(products.map((product) => product.category).filter((value): value is string => Boolean(value)))].sort(), [products]);
+  const visibleProducts = useMemo(() => products.filter((product) => (category === "" || product.category === category) && `${product.name} ${product.id}`.toLowerCase().includes(query.trim().toLowerCase())), [products, category, query]);
 
   useEffect(() => {
     void loadProducts();
@@ -227,7 +231,8 @@ export function ProductsPage() {
         <div className="products-panel products-empty">No products yet. Add a product to define trade goods and crate capacity.</div>
       ) : (
         <section className="products-panel">
-          <div className="products-table-heading"><h2>Products</h2><span>{products.length} products</span></div>
+          <div className="products-table-heading"><h2>Products</h2><span>{visibleProducts.length} of {products.length} products</span></div>
+          <div className="management-filters"><label>Search products<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name or ID" /></label><label>Category<select value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All categories</option>{categories.map((value) => <option key={value} value={value}>{value}</option>)}</select></label></div>
           <div className="products-table-wrapper"><table className="products-table">
             <thead>
               <tr>
@@ -297,7 +302,7 @@ export function ProductsPage() {
             </thead>
 
             <tbody>
-              {products.map((product) => {
+              {visibleProducts.map((product) => {
                 const imageUrl =
                   getProductImageUrl(product);
 
@@ -377,7 +382,7 @@ export function ProductsPage() {
                     </td>
                   </tr>
                 );
-              })}
+              })}{visibleProducts.length === 0 && <tr><td colSpan={7}>No products match the current filters.</td></tr>}
             </tbody>
           </table></div>
         </section>

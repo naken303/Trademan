@@ -14,11 +14,13 @@ export function RoutePage() {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
 
   const villageNames = useMemo(
     () => new Map(villages.map((village) => [village.id, village.name])),
     [villages],
   );
+  const visibleRoutes = useMemo(() => routes.filter((route) => `${villageNames.get(route.from) ?? route.from} ${villageNames.get(route.to) ?? route.to} ${route.id}`.toLowerCase().includes(query.trim().toLowerCase())), [routes, villageNames, query]);
 
   async function loadData() {
     setLoading(true);
@@ -64,8 +66,8 @@ export function RoutePage() {
     </header>
     {error && <div className="route-error" role="alert">{error}</div>}
     {showForm && <section className="route-panel"><RouteForm key={editing?.id ?? "new"} villages={villages} route={editing} onSubmit={handleSubmit} onCancel={() => { setEditing(null); setShowForm(false); }} /></section>}
-    <section className="route-panel"><table><thead><tr><th>From</th><th>To</th><th>Forward</th><th>Return</th><th>Actions</th></tr></thead>
-      <tbody>{routes.map((route) => <tr key={route.id}><td data-label="From">{villageNames.get(route.from) ?? route.from}</td><td data-label="To">{villageNames.get(route.to) ?? route.to}</td><td data-label="Forward">{formatDuration(route.travelTime.days, route.travelTime.hours)}</td><td data-label="Return">{route.returnAvailable === false ? "Not available" : route.reverseTravelTime ? formatDuration(route.reverseTravelTime.days, route.reverseTravelTime.hours) : "Same as forward"}</td><td data-label="Actions" className="route-actions"><button type="button" onClick={() => { setEditing(route); setShowForm(true); }}>Edit</button><button type="button" onClick={() => void handleDelete(route)}>Delete</button></td></tr>)}
-      {routes.length === 0 && <tr><td colSpan={5}>No routes yet. Add a route to connect two villages.</td></tr>}</tbody></table></section>
+    <section className="route-panel"><div className="management-filters"><label>Search routes<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Village name or route ID" /></label><span>{visibleRoutes.length} of {routes.length} routes</span></div><table><thead><tr><th>From</th><th>To</th><th>Forward</th><th>Return</th><th>Actions</th></tr></thead>
+      <tbody>{visibleRoutes.map((route) => <tr key={route.id}><td data-label="From">{villageNames.get(route.from) ?? route.from}</td><td data-label="To">{villageNames.get(route.to) ?? route.to}</td><td data-label="Forward">{formatDuration(route.travelTime.days, route.travelTime.hours)}</td><td data-label="Return">{route.returnAvailable === false ? "Not available" : route.reverseTravelTime ? formatDuration(route.reverseTravelTime.days, route.reverseTravelTime.hours) : "Same as forward"}</td><td data-label="Actions" className="route-actions"><button type="button" onClick={() => { setEditing(route); setShowForm(true); }}>Edit</button><button type="button" onClick={() => void handleDelete(route)}>Delete</button></td></tr>)}
+      {routes.length === 0 && <tr><td colSpan={5}>No routes yet. Add a route to connect two villages.</td></tr>}{routes.length > 0 && visibleRoutes.length === 0 && <tr><td colSpan={5}>No routes match the current search.</td></tr>}</tbody></table></section>
   </div>;
 }

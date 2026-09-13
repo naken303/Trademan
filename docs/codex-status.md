@@ -8,15 +8,15 @@
 
 ## Current Phase
 
-- Phase: Route return-availability support complete
-- Current Task: Add optional one-way routes while retaining return trips by default
+- Phase: World-management and optimizer-output usability complete
+- Current Task: Add canvas route deletion, management filters, and session-only optimizer output retention
 - Task Status: `completed`
 
 ## Repository Status
 
-- Working Tree: Clean after committing the route return-availability change.
-- Latest Commit: `1667105` (`Add optional one-way routes`).
-- Notes: Routes remain bidirectional by default. A route may now explicitly disable its return trip; Simulation and Optimizer then cannot use reverse fallback for that route.
+- Working Tree: Usability changes are ready to commit.
+- Latest Commit: `cee908c` (`Update route status note`).
+- Notes: Routes remain bidirectional by default. A route may now explicitly disable its return trip; Simulation and Optimizer then cannot use reverse fallback for that route. Optimizer output is session-only and is retained when navigating away; only Delete output clears it.
   The Optimizer page restores its running state from an active job after reload and keeps Brake visible after start.
   Returned plans compact consecutive same-village Buy/Sell actions for the same product without changing the simulated final state.
   Target mode ignores period/steps/expanded-state stopping conditions, retains Beam Width as the active memory bound, and relies on target completion, frontier exhaustion, or Brake to finish.
@@ -30,7 +30,7 @@
 - Status: `PASS`
 - Date: 2026-09-13
 - Error Summary: None
-- Details: Production build completed without the prior chunk-size warning after page-level lazy loading.
+- Details: Production build completed successfully with the canvas controls, filters, and optimizer output store.
 
 ### Test
 
@@ -39,7 +39,7 @@
 - Date: 2026-09-13
 - Tests: 21 test files passed; 98 tests passed.
 - Error Summary: None
-- Details: Full Vitest suite completed successfully, including explicit one-way-route and persistence coverage.
+- Details: Full Vitest suite completed successfully; 98 tests passed.
 
 ### Lint
 
@@ -65,10 +65,10 @@
 
 ## Changes In Last Task
 
-- Files changed: Route shared contract, migration, repository/importer, route forms/page, World canvas/editor, route/simulation/server tests, and this status note.
-- What changed: Added optional `returnAvailable`; it defaults to enabled and can be disabled per route.
-- Why: Model the uncommon route that has a forward trip but no return trip.
-- Behavior affected: Reverse fallback remains for routes without `returnAvailable: false`; one-way routes are unavailable as reverse travel destinations in Simulation and Optimizer.
+- Files changed: World canvas/route edge, Product/Village/Route management pages, Optimizer page/result store, styles, and this status note.
+- What changed: Added canvas route deletion with confirmation, Product category/search filters, Village/Route searches, and a session-only optimizer-result store with Delete output.
+- Why: Make large worlds easier to manage and prevent completed optimizer output from disappearing after navigation.
+- Behavior affected: Deleting a canvas route calls the existing route API after confirmation. A completed optimizer result remains while the app session is open, including across page navigation; a new run does not clear it, and Delete output is the explicit clear action.
 
 ## Known Issues
 
@@ -188,7 +188,7 @@
 - Product create requests omit `id`; SQLite-backed IDs use monotonic `P000001` formatting while legacy IDs such as `MILK` remain unchanged and updateable.
 - Current Reset card edits remain client-local until Start Simulation or Run Optimizer; E2E verified that editing does not issue Village persistence requests.
 - Responsive browser inspection passed at 1440, 1024, 768, and 390 px for both setup pages, including local error presentation and Optimizer results; no page-level horizontal overflow was observed.
-- Latest verification: build PASS, 21 Vitest files/98 tests PASS, lint PASS. E2E browser execution is blocked by a local Chromium `spawn EPERM` permission failure.
+- Latest verification: build PASS, 21 Vitest files/98 tests PASS, lint PASS. E2E browser execution remains blocked by a local Chromium `spawn EPERM` permission failure.
 
 ## Verification History
 
@@ -196,3 +196,4 @@
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
 | 2026-09-13 | Uncommitted | PASS | PASS | PASS | PASS | Post-plan liquidation: 21 Vitest files/96 tests and 4 isolated Playwright flows passed. |
 | 2026-09-13 | `1667105` | PASS | PASS | PASS | FAIL | Added optional one-way routes; Chromium browser launch was blocked by `spawn EPERM`. |
+| 2026-09-13 | Uncommitted | PASS | PASS | PASS | NOT_RUN | Added canvas route deletion, Product category/search filters, Village/Route search, and session-only optimizer output retention. |
