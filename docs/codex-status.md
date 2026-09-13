@@ -3,7 +3,7 @@
 ## Last Updated
 
 - Date: 2026-09-13
-- Commit: `b112ff4` (`Reduce optimizer memory and add graceful brake`)
+- Commit: `21face8` (`Add optimizer profit target mode`)
 - Branch: main
 
 ## Current Phase
@@ -15,7 +15,7 @@
 ## Repository Status
 
 - Working Tree: Clean after optimizer job commit.
-- Latest Commit: `b112ff4` (`Reduce optimizer memory and add graceful brake`).
+- Latest Commit: `21face8` (`Add optimizer profit target mode`).
 - Notes: The fixed timeout has been removed. Optimizer execution now uses one active server-side job, worker progress polling, cooperative Brake, a disposable SQLite dominance store in the system temp directory, and optional Profit Target search mode.
   The Optimizer page restores its running state from an active job after reload and keeps Brake visible after start.
   Returned plans compact consecutive same-village Buy/Sell actions for the same product without changing the simulated final state.
@@ -180,4 +180,4 @@
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-13 | Uncommitted | PASS | PASS | PASS | PASS | Profit Target and static optimizer indexes: 21 Vitest files/95 tests and 4 isolated Playwright flows passed. |
+| 2026-09-13 | 21face8 | PASS | PASS | PASS | PASS | Profit Target and static optimizer indexes: 21 Vitest files/95 tests and 4 isolated Playwright flows passed. |
