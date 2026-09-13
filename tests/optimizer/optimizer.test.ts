@@ -66,6 +66,16 @@ describe("optimizer core", () => {
     expect(result.statistics.terminationReason).toBe("targetProfit");
     replayAndExpectResult(world(), result);
   });
+  it("adds legal travel and sell steps to liquidate inventory after maximum plan steps", () => {
+    const input = world();
+    input.player.initialInventory = [{ productId: "P", quantity: 10, unitCost: 2 }];
+    const result = runOptimizer(input, { maxSteps: 1, maxExpandedStates: 100 });
+    expect(result.statistics.terminationReason).toBe("maxSteps");
+    expect(result.plan.length).toBeGreaterThan(1);
+    expect(result.plan.map((step) => step.action.type)).toEqual(expect.arrayContaining(["travel", "sell"]));
+    expect(result.finalState.player.inventory).toEqual([]);
+    replayAndExpectResult(input, result);
+  });
   it("finds a profitable direct buy, travel, and sell plan", () => {
     const result = runOptimizer(world());
     expect(result.accumulatedProfit).toBeGreaterThan(0);

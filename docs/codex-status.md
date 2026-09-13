@@ -8,8 +8,8 @@
 
 ## Current Phase
 
-- Phase: Optimizer target-mode and performance indexing complete
-- Current Task: Profit Target search mode
+- Phase: Optimizer post-plan liquidation complete
+- Current Task: Sell remaining inventory after bounded search
 - Task Status: `completed`
 
 ## Repository Status
@@ -20,6 +20,7 @@
   The Optimizer page restores its running state from an active job after reload and keeps Brake visible after start.
   Returned plans compact consecutive same-village Buy/Sell actions for the same product without changing the simulated final state.
   Target mode ignores period/steps/expanded-state stopping conditions, retains Beam Width as the active memory bound, and relies on target completion, frontier exhaustion, or Brake to finish.
+  When a normal run ends at maxSteps or a target run reaches its target, a liquidation phase adds legal Travel/Sell steps without consuming the search step budget.
 
 ## Verification
 
@@ -36,9 +37,9 @@
 - Command: `npm run test`
 - Status: `PASS`
 - Date: 2026-09-12
-- Tests: 21 test files passed; 95 tests passed.
+- Tests: 21 test files passed; 96 tests passed.
 - Error Summary: None
-- Details: 21 Vitest files and 95 tests completed successfully, including target mode overriding ordinary step/state limits.
+- Details: 21 Vitest files and 96 tests completed successfully, including replayable post-plan inventory liquidation.
 
 ### Lint
 
@@ -65,9 +66,9 @@
 ## Changes In Last Task
 
 - Files changed: Optimizer search, Optimizer page/client API/server route, Optimizer Worker/API test, shared E2E flow, and this status note.
-- What changed: Added optional Profit Target and per-run immutable indexes for products, village markets, and reachable destinations.
-- Why: Allow target-driven search without ordinary period/step/state stop limits and avoid rebuilding static lookup data for every expanded state.
-- Behavior affected: A positive target continues until target, frontier exhaustion, or Brake; Beam Width remains the memory bound. Normal runs retain existing limits and business rules.
+- What changed: Added a post-plan liquidation phase for maxSteps/target completion.
+- Why: Return a practical plan that sells remaining inventory without spending the optimizer's search-step budget.
+- Behavior affected: Legal Travel/Sell actions are appended through SimulationEngine while period limits remain respected for normal runs; unsellable inventory remains when demand, reserve money, routes, or remaining period prevent liquidation.
 
 ## Known Issues
 
@@ -88,6 +89,12 @@
    - Problem: An unreachable profit target can search indefinitely by design.
    - Impact: The user must use Brake when no target result is found.
    - Recommended action: Set realistic targets and monitor progress/Brake.
+
+4. Low
+   - Location: Optimizer post-plan liquidation
+   - Problem: Inventory cannot always be fully sold when reachable demand, reserve money, or remaining normal-mode time is insufficient.
+   - Impact: The final plan can retain unsellable inventory.
+   - Recommended action: Increase the period, use Target mode, or adjust market demand/reserves.
 
 ## Completed Milestones
 
@@ -174,10 +181,10 @@
 - Product create requests omit `id`; SQLite-backed IDs use monotonic `P000001` formatting while legacy IDs such as `MILK` remain unchanged and updateable.
 - Current Reset card edits remain client-local until Start Simulation or Run Optimizer; E2E verified that editing does not issue Village persistence requests.
 - Responsive browser inspection passed at 1440, 1024, 768, and 390 px for both setup pages, including local error presentation and Optimizer results; no page-level horizontal overflow was observed.
-- Latest verification: build PASS, 21 Vitest files/95 tests PASS, lint PASS, and 4 isolated Playwright tests PASS. Remaining limitation: no committed stress benchmark fixture yet.
+- Latest verification: build PASS, 21 Vitest files/96 tests PASS, lint PASS, and 4 isolated Playwright tests PASS. Remaining limitation: no committed stress benchmark fixture yet.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-13 | 21face8 | PASS | PASS | PASS | PASS | Profit Target and static optimizer indexes: 21 Vitest files/95 tests and 4 isolated Playwright flows passed. |
+| 2026-09-13 | Uncommitted | PASS | PASS | PASS | PASS | Post-plan liquidation: 21 Vitest files/96 tests and 4 isolated Playwright flows passed. |

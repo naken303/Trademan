@@ -113,6 +113,60 @@ function sortCandidates(world: WorldData, candidates: SearchNode[]): SearchNode[
     || actionKey(left.plan.at(-1)!.action).localeCompare(actionKey(right.plan.at(-1)!.action)));
 }
 
+function addPlanStep(plan: OptimizerPlanStep[], action: OptimizerAction, state: SimulationState) {
+  plan.push({ action, time: state.time, villageId: state.player.location, playerMoney: state.player.money, accumulatedProfit: state.accumulatedProfit });
+}
+
+function liquidationPath(world: WorldData, context: OptimizerContext, state: SimulationState, deadline: number): string[] | undefined {
+  const inventoryProducts = new Set(state.player.inventory.filter((item) => item.quantity > 0).map((item) => item.productId));
+  const destinations = world.markets.filter((market) => market.side === "demand" && inventoryProducts.has(market.productId)).map((market) => market.villageId);
+  const queue: Array<{ villageId: string; hours: number; path: string[] }> = [{ villageId: state.player.location, hours: 0, path: [] }];
+  const visited = new Set<string>();
+  while (queue.length > 0) {
+    queue.sort((left, right) => left.hours - right.hours || left.villageId.localeCompare(right.villageId));
+    const current = queue.shift()!;
+    if (visited.has(current.villageId)) continue;
+    visited.add(current.villageId);
+    if (current.path.length > 0 && destinations.includes(current.villageId)) return current.path;
+    for (const destinationId of context.destinationsByVillage.get(current.villageId) ?? []) {
+      const duration = getTravelTime(world.routes, current.villageId, destinationId)!;
+      const hours = current.hours + duration.days * 24 + duration.hours;
+      if (state.time.day * 24 + state.time.hour + hours <= deadline) queue.push({ villageId: destinationId, hours, path: [...current.path, destinationId] });
+    }
+  }
+  return undefined;
+}
+
+function liquidateInventory(world: WorldData, context: OptimizerContext, initialState: SimulationState, initialPlan: OptimizerPlanStep[], deadline: number): { state: SimulationState; plan: OptimizerPlanStep[] } {
+  let state = initialState;
+  const plan = [...initialPlan];
+  for (let attempts = 0; attempts < world.markets.length * 2 + world.villages.length * 2 && state.player.inventory.some((item) => item.quantity > 0); attempts += 1) {
+    let sold = false;
+    for (const market of context.marketsByVillage.get(state.player.location) ?? []) {
+      if (market.side !== "demand") continue;
+      const inventory = state.player.inventory.find((item) => item.productId === market.productId)?.quantity ?? 0;
+      const available = state.villages[state.player.location]?.markets[market.id]?.quantity ?? 0;
+      const reserve = state.villages[state.player.location]?.money ?? 0;
+      const quantity = Math.min(inventory, available, Math.floor(reserve / market.unitPrice));
+      if (quantity <= 0) continue;
+      const engine = new SimulationEngine(state, world.products, world.routes, world.markets, world.player.inventoryCapacityCrates);
+      state = engine.sell(market.productId, quantity);
+      addPlanStep(plan, { type: "sell", productId: market.productId, quantity }, state);
+      sold = true;
+    }
+    if (state.player.inventory.length === 0) break;
+    const path = liquidationPath(world, context, state, deadline);
+    if (!path) break;
+    for (const destinationId of path) {
+      const engine = new SimulationEngine(state, world.products, world.routes, world.markets, world.player.inventoryCapacityCrates);
+      state = engine.travel(destinationId);
+      addPlanStep(plan, { type: "travel", destinationId }, state);
+    }
+    if (!sold && path.length === 0) break;
+  }
+  return { state, plan };
+}
+
 /** Consecutive trades at the same village/product have no time or price change, so one combined action replays identically. */
 export function compactOptimizerPlan(plan: OptimizerPlanStep[]): OptimizerPlanStep[] {
   return plan.reduce<OptimizerPlanStep[]>((compacted, step) => {
@@ -138,8 +192,8 @@ export function runOptimizer(world: WorldData, options: OptimizerSearchOptions =
     ),
   });
   const startHour = absoluteHour(initialState);
-  const deadline = startHour + resolved.periodDays * 24;
   const targetMode = resolved.targetProfit !== undefined;
+  const deadline = targetMode ? Infinity : startHour + resolved.periodDays * 24;
   const context = createContext(world);
   const initial: SearchNode = { state: initialState, plan: [], tradeActions: 0, firstProfitStep: null };
   let frontier = [initial];
@@ -213,5 +267,8 @@ export function runOptimizer(world: WorldData, options: OptimizerSearchOptions =
   statistics.terminationReason = terminationReason;
   statistics.bestAccumulatedProfit = best.state.accumulatedProfit;
   report();
-  return { plan: compactOptimizerPlan(best.plan), finalState: best.state, accumulatedProfit: best.state.accumulatedProfit, options: resolved, statistics };
+  const finalized = terminationReason === "maxSteps" || terminationReason === "targetProfit"
+    ? liquidateInventory(world, context, best.state, best.plan, deadline)
+    : { state: best.state, plan: best.plan };
+  return { plan: compactOptimizerPlan(finalized.plan), finalState: finalized.state, accumulatedProfit: finalized.state.accumulatedProfit, options: resolved, statistics };
 }
