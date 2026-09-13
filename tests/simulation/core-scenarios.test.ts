@@ -76,4 +76,14 @@ describe("full core simulation scenarios", () => {
     expect(explicit.travel("B").state.time).toEqual({ day: 1, hour: 2 });
     expect(explicit.travel("A").state.time).toEqual({ day: 1, hour: 7 });
   });
+
+  it("does not allow reverse fallback when a route explicitly has no return trip", () => {
+    const oneWayWorld = routeWorld([
+      { id: "A-B", from: "A", to: "B", travelTime: { days: 0, hours: 2 }, returnAvailable: false },
+    ]);
+    const controller = new SimulationController(oneWayWorld, demoReset(oneWayWorld));
+    controller.travel("B");
+    expect(() => controller.travel("A")).toThrow("No route from B to A");
+    expect(controller.getSnapshot().destinations).toEqual([]);
+  });
 });

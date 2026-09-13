@@ -13,6 +13,11 @@ describe("Route contract", () => {
     }).success).toBe(true);
   });
 
+  it("defaults to a return route, but accepts an explicitly one-way route", () => {
+    expect(routeSchema.parse({ id: "A-B", from: "A", to: "B", travelTime: { days: 0, hours: 4 } }).returnAvailable).toBeUndefined();
+    expect(routeSchema.safeParse({ id: "A-B", from: "A", to: "B", travelTime: { days: 0, hours: 4 }, returnAvailable: false }).success).toBe(true);
+  });
+
   it("rejects a zero return duration", () => {
     expect(routeSchema.safeParse({ id: "A-B", from: "A", to: "B", travelTime: { days: 0, hours: 4 }, reverseTravelTime: { days: 0, hours: 0 } }).success).toBe(false);
   });

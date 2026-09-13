@@ -79,12 +79,14 @@ function createEdges(world: WorldData, nodes: VillageNodeType[], onRouteEdit: Wo
     targetHandle: `target-${handles.targetSide}`,
     type: "directionalRoute",
     markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
-    markerStart: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
+    ...(route.returnAvailable === false ? {} : { markerStart: { type: MarkerType.ArrowClosed, width: 18, height: 18 } }),
     data: {
       routeId: route.id,
       from: route.from,
       to: route.to,
-      durationLabel: route.reverseTravelTime
+      durationLabel: route.returnAvailable === false
+        ? `${formatRouteDuration(route.travelTime.days, route.travelTime.hours)} one-way`
+        : route.reverseTravelTime
         ? `${formatRouteDuration(route.travelTime.days, route.travelTime.hours)} / ${formatRouteDuration(route.reverseTravelTime.days, route.reverseTravelTime.hours)}`
         : formatRouteDuration(route.travelTime.days, route.travelTime.hours),
       onEdit: onRouteEdit,

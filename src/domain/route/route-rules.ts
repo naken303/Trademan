@@ -19,5 +19,7 @@ export function getTravelTime(
   if (!route) return undefined;
   return route.from === from
     ? route.travelTime
-    : route.reverseTravelTime ?? route.travelTime;
+    : route.returnAvailable === false
+      ? undefined
+      : route.reverseTravelTime ?? route.travelTime;
 }

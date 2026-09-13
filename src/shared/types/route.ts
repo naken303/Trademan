@@ -6,4 +6,6 @@ export interface Route {
   to: string;
   travelTime: Duration;
   reverseTravelTime?: Duration;
+  /** Omitted routes retain the legacy/default bidirectional behavior. */
+  returnAvailable?: boolean;
 }

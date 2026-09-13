@@ -15,7 +15,8 @@ export function getAllRoutes(): Route[] {
         travel_days,
         travel_hours,
         reverse_travel_days,
-        reverse_travel_hours
+        reverse_travel_hours,
+        return_available
       FROM routes
       ORDER BY id
       `,
@@ -28,6 +29,7 @@ export function getAllRoutes(): Route[] {
       travel_hours: number;
       reverse_travel_days: number | null;
       reverse_travel_hours: number | null;
+      return_available: number;
     }>;
 
   return rows.map((row) => ({
@@ -49,12 +51,13 @@ export function getAllRoutes(): Route[] {
     ...(row.reverse_travel_days !== null && row.reverse_travel_hours !== null
       ? { reverseTravelTime: { days: row.reverse_travel_days, hours: row.reverse_travel_hours } }
       : {}),
+    ...(row.return_available === 0 ? { returnAvailable: false } : {}),
   }));
 }
 
 export function getRouteById(routeId: string): Route | null {
   const row = db.prepare(`
-    SELECT id, from_village_id, to_village_id, travel_days, travel_hours, reverse_travel_days, reverse_travel_hours
+    SELECT id, from_village_id, to_village_id, travel_days, travel_hours, reverse_travel_days, reverse_travel_hours, return_available
     FROM routes
     WHERE id = ?
   `).get(routeId) as
@@ -66,6 +69,7 @@ export function getRouteById(routeId: string): Route | null {
         travel_hours: number;
         reverse_travel_days: number | null;
         reverse_travel_hours: number | null;
+        return_available: number;
       }
     | undefined;
 
@@ -76,6 +80,7 @@ export function getRouteById(routeId: string): Route | null {
         to: row.to_village_id,
         travelTime: { days: row.travel_days, hours: row.travel_hours },
         ...(row.reverse_travel_days !== null && row.reverse_travel_hours !== null ? { reverseTravelTime: { days: row.reverse_travel_days, hours: row.reverse_travel_hours } } : {}),
+        ...(row.return_available === 0 ? { returnAvailable: false } : {}),
       }
     : null;
 }
@@ -88,8 +93,8 @@ export function getRouteByEndpoints(from: string, to: string): Route | null {
 export function createRoute(route: Route): void {
   db.prepare(`
     INSERT INTO routes (
-      id, from_village_id, to_village_id, travel_days, travel_hours, reverse_travel_days, reverse_travel_hours
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      id, from_village_id, to_village_id, travel_days, travel_hours, reverse_travel_days, reverse_travel_hours, return_available
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     route.id,
     route.from,
@@ -98,13 +103,14 @@ export function createRoute(route: Route): void {
     route.travelTime.hours,
     route.reverseTravelTime?.days ?? null,
     route.reverseTravelTime?.hours ?? null,
+    route.returnAvailable === false ? 0 : 1,
   );
 }
 
 export function updateRoute(route: Route): void {
   const result = db.prepare(`
     UPDATE routes
-    SET from_village_id = ?, to_village_id = ?, travel_days = ?, travel_hours = ?, reverse_travel_days = ?, reverse_travel_hours = ?
+    SET from_village_id = ?, to_village_id = ?, travel_days = ?, travel_hours = ?, reverse_travel_days = ?, reverse_travel_hours = ?, return_available = ?
     WHERE id = ?
   `).run(
     route.from,
@@ -113,6 +119,7 @@ export function updateRoute(route: Route): void {
     route.travelTime.hours,
     route.reverseTravelTime?.days ?? null,
     route.reverseTravelTime?.hours ?? null,
+    route.returnAvailable === false ? 0 : 1,
     route.id,
   );
 

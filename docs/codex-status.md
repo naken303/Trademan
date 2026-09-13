@@ -3,20 +3,20 @@
 ## Last Updated
 
 - Date: 2026-09-13
-- Commit: `21face8` (`Add optimizer profit target mode`)
+- Commit: `6c8e0f1` (`Liquidate remaining optimizer inventory`)
 - Branch: main
 
 ## Current Phase
 
-- Phase: Optimizer post-plan liquidation complete
-- Current Task: Sell remaining inventory after bounded search
+- Phase: Route return-availability support complete
+- Current Task: Add optional one-way routes while retaining return trips by default
 - Task Status: `completed`
 
 ## Repository Status
 
-- Working Tree: Clean after optimizer job commit.
-- Latest Commit: `21face8` (`Add optimizer profit target mode`).
-- Notes: The fixed timeout has been removed. Optimizer execution now uses one active server-side job, worker progress polling, cooperative Brake, a disposable SQLite dominance store in the system temp directory, and optional Profit Target search mode.
+- Working Tree: Route return-availability changes are ready to commit.
+- Latest Commit: `6c8e0f1` (`Liquidate remaining optimizer inventory`).
+- Notes: Routes remain bidirectional by default. A route may now explicitly disable its return trip; Simulation and Optimizer then cannot use reverse fallback for that route.
   The Optimizer page restores its running state from an active job after reload and keeps Brake visible after start.
   Returned plans compact consecutive same-village Buy/Sell actions for the same product without changing the simulated final state.
   Target mode ignores period/steps/expanded-state stopping conditions, retains Beam Width as the active memory bound, and relies on target completion, frontier exhaustion, or Brake to finish.
@@ -28,7 +28,7 @@
 
 - Command: `npm run build`
 - Status: `PASS`
-- Date: 2026-09-12
+- Date: 2026-09-13
 - Error Summary: None
 - Details: Production build completed without the prior chunk-size warning after page-level lazy loading.
 
@@ -36,25 +36,25 @@
 
 - Command: `npm run test`
 - Status: `PASS`
-- Date: 2026-09-12
-- Tests: 21 test files passed; 96 tests passed.
+- Date: 2026-09-13
+- Tests: 21 test files passed; 98 tests passed.
 - Error Summary: None
-- Details: 21 Vitest files and 96 tests completed successfully, including replayable post-plan inventory liquidation.
+- Details: Full Vitest suite completed successfully, including explicit one-way-route and persistence coverage.
 
 ### Lint
 
 - Command: `npm run lint`
 - Status: `PASS`
-- Date: 2026-09-12
+- Date: 2026-09-13
 - Error Summary: None
 - Details: ESLint completed successfully.
 
 ### E2E
 
 - Command: `npm run e2e`
-- Status: `PASS`
-- Date: 2026-09-12
-- Details: 4 Playwright flows passed using isolated temporary SQLite and backup paths; Optimizer UI coverage uses the job start/poll flow.
+- Status: `FAIL`
+- Date: 2026-09-13
+- Details: The Playwright browser flows could not launch because Windows returned `spawn EPERM` for the installed Chromium headless shell. One API-only flow passed; this is an environment permission blocker, not an asserted application failure.
 
 ### Optimizer Worker Smoke
 
@@ -65,10 +65,10 @@
 
 ## Changes In Last Task
 
-- Files changed: Optimizer search, Optimizer page/client API/server route, Optimizer Worker/API test, shared E2E flow, and this status note.
-- What changed: Added a post-plan liquidation phase for maxSteps/target completion.
-- Why: Return a practical plan that sells remaining inventory without spending the optimizer's search-step budget.
-- Behavior affected: Legal Travel/Sell actions are appended through SimulationEngine while period limits remain respected for normal runs; unsellable inventory remains when demand, reserve money, routes, or remaining period prevent liquidation.
+- Files changed: Route shared contract, migration, repository/importer, route forms/page, World canvas/editor, route/simulation/server tests, and this status note.
+- What changed: Added optional `returnAvailable`; it defaults to enabled and can be disabled per route.
+- Why: Model the uncommon route that has a forward trip but no return trip.
+- Behavior affected: Reverse fallback remains for routes without `returnAvailable: false`; one-way routes are unavailable as reverse travel destinations in Simulation and Optimizer.
 
 ## Known Issues
 
@@ -78,11 +78,11 @@
    - Impact: N/A
    - Recommended action: Continue to verify after each scoped change.
 
-2. Low
-   - Location: World canvas route layout
-   - Problem: Edge routing intentionally uses local smart handles rather than global crossing or label-collision optimization.
-   - Impact: Very dense worlds can still have intersections between unrelated route pairs.
-   - Recommended action: Reposition villages manually; consider a bounded fan-out enhancement only if dense-world usage proves it necessary.
+2. Medium
+   - Location: Playwright browser execution on this Windows host
+   - Problem: Chromium headless-shell launch currently fails with `spawn EPERM`.
+   - Impact: The browser portion of `npm run e2e` cannot complete on this host.
+   - Recommended action: Restore permission to launch the installed Playwright Chromium executable, then rerun E2E.
 
 3. Medium
    - Location: Optimizer Target mode
@@ -91,6 +91,12 @@
    - Recommended action: Set realistic targets and monitor progress/Brake.
 
 4. Low
+   - Location: World canvas route layout
+   - Problem: Edge routing intentionally uses local smart handles rather than global crossing or label-collision optimization.
+   - Impact: Very dense worlds can still have intersections between unrelated route pairs.
+   - Recommended action: Reposition villages manually; consider a bounded fan-out enhancement only if dense-world usage proves it necessary.
+
+5. Low
    - Location: Optimizer post-plan liquidation
    - Problem: Inventory cannot always be fully sold when reachable demand, reserve money, or remaining normal-mode time is insufficient.
    - Impact: The final plan can retain unsellable inventory.
@@ -129,14 +135,15 @@
 
 ## Remaining Work
 
-1. Run a fresh final release verification pass, including manual responsive review of the revised setup/forms.
+1. Restore Playwright Chromium launch permission and rerun the browser E2E suite.
+2. Continue the next planned optimizer/release task after E2E is green.
 
 ## Important Notes For ChatGPT
 
 - Initial inventory entries require `{ productId, quantity, unitCost }`; runtime `inventoryCost` is initialized as `quantity * unitCost` per product.
 - Migration `003_initial_inventory_unit_cost.sql` preserves existing databases and explicitly maps legacy rows without recorded cost to `unitCost = 0`.
 - `createApp()` owns Express/database setup; `server.ts` owns only port selection and listening.
-- Route validation rejects self-routes and zero travel duration; reverse-route fallback remains exclusively in domain/simulation code.
+- Route validation rejects self-routes and zero travel duration. Reverse-route fallback remains exclusively in domain/simulation code, except routes explicitly saved with `returnAvailable: false` are one-way.
 - Simulation UI initializes from persisted WorldData, but all runtime mutations remain in memory and restart from the saved world on reload/restart.
 - Simulation actions call `SimulationEngine` through `SimulationController`; React does not advance time, reset villages, or mutate trade state directly.
 - Export and backup serialize persisted WorldData only; runtime Simulation state is excluded.
@@ -181,10 +188,11 @@
 - Product create requests omit `id`; SQLite-backed IDs use monotonic `P000001` formatting while legacy IDs such as `MILK` remain unchanged and updateable.
 - Current Reset card edits remain client-local until Start Simulation or Run Optimizer; E2E verified that editing does not issue Village persistence requests.
 - Responsive browser inspection passed at 1440, 1024, 768, and 390 px for both setup pages, including local error presentation and Optimizer results; no page-level horizontal overflow was observed.
-- Latest verification: build PASS, 21 Vitest files/96 tests PASS, lint PASS, and 4 isolated Playwright tests PASS. Remaining limitation: no committed stress benchmark fixture yet.
+- Latest verification: build PASS, 21 Vitest files/98 tests PASS, lint PASS. E2E browser execution is blocked by a local Chromium `spawn EPERM` permission failure.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
 | 2026-09-13 | Uncommitted | PASS | PASS | PASS | PASS | Post-plan liquidation: 21 Vitest files/96 tests and 4 isolated Playwright flows passed. |
+| 2026-09-13 | Uncommitted | PASS | PASS | PASS | FAIL | Added optional one-way routes; Chromium browser launch was blocked by `spawn EPERM`. |

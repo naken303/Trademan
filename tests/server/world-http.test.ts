@@ -178,10 +178,12 @@ describe("Route HTTP API", () => {
         from: "C",
         to: "D",
         travelTime: { days: 1, hours: 2 },
+        returnAvailable: false,
       }),
     });
     const created = await createdResponse.json();
     expect(createdResponse.status).toBe(201);
+    expect(created).toMatchObject({ returnAvailable: false });
 
     expect(await (await request(`/api/routes/${created.id}`)).json()).toEqual(created);
     expect(await (await request("/api/routes")).json()).toContainEqual(created);
@@ -193,6 +195,7 @@ describe("Route HTTP API", () => {
         from: "D",
         to: "C",
         travelTime: { days: 0, hours: 7 },
+        returnAvailable: true,
       }),
     });
     expect(await updatedResponse.json()).toMatchObject({

@@ -6,6 +6,7 @@ const routeFields = {
   to: z.string().min(1),
   travelTime: durationSchema,
   reverseTravelTime: durationSchema.optional(),
+  returnAvailable: z.boolean().optional(),
 };
 
 function validateRoute(

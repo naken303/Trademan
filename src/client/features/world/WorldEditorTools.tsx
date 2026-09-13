@@ -50,19 +50,22 @@ function Modal({ title, children, onCancel }: { title: string; children: React.R
 
 export function RouteDialog({ world, from, to, existing, onCancel, onSave }: { world: WorldData; from: string; to: string; existing?: Route; onCancel: () => void; onSave: (input: Omit<Route, "id">, existing?: Route) => Promise<void> }) {
   const [days, setDays] = useState(String(existing?.travelTime.days ?? 0)); const [hours, setHours] = useState(String(existing?.travelTime.hours ?? 1));
+  const [returnAvailable, setReturnAvailable] = useState(existing?.returnAvailable !== false);
   const [differentReturn, setDifferentReturn] = useState(existing?.reverseTravelTime !== undefined);
   const [returnDays, setReturnDays] = useState(String(existing?.reverseTravelTime?.days ?? 0));
   const [returnHours, setReturnHours] = useState(String(existing?.reverseTravelTime?.hours ?? 1));
   const [error, setError] = useState(""); const [saving, setSaving] = useState(false);
   const village = (id: string) => world.villages.find((item) => item.id === id)?.name ?? id;
-  async function submit(event: FormEvent) { event.preventDefault(); const parsed = routeInputSchema.safeParse({ from, to, travelTime: { days: Number(days), hours: Number(hours) }, ...(differentReturn ? { reverseTravelTime: { days: Number(returnDays), hours: Number(returnHours) } } : {}) });
+  async function submit(event: FormEvent) { event.preventDefault(); const parsed = routeInputSchema.safeParse({ from, to, travelTime: { days: Number(days), hours: Number(hours) }, returnAvailable, ...(returnAvailable && differentReturn ? { reverseTravelTime: { days: Number(returnDays), hours: Number(returnHours) } } : {}) });
     if (!parsed.success) { setError(parsed.error.issues[0]?.message ?? "Invalid route"); return; }
     setSaving(true); setError(""); try { await onSave(parsed.data, existing); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save route"); } finally { setSaving(false); }
   }
-  return <Modal title={existing ? "Edit Route" : "Create Route"} onCancel={onCancel}><p className="dialog-context"><strong>{village(from)}</strong><span>↔</span><strong>{village(to)}</strong></p>
+  return <Modal title={existing ? "Edit Route" : "Create Route"} onCancel={onCancel}><p className="dialog-context"><strong>{village(from)}</strong><span>{returnAvailable ? "↔" : "→"}</span><strong>{village(to)}</strong></p>
     <form onSubmit={submit}><div className="dialog-fields"><label>Forward days<input aria-label="Route days" type="number" min="0" step="1" value={days} onChange={(event) => setDays(event.target.value)} /></label><label>Forward hours<input aria-label="Route hours" type="number" min="0" max="23" step="1" value={hours} onChange={(event) => setHours(event.target.value)} /></label></div>
-      <label><input type="checkbox" checked={differentReturn} onChange={(event) => setDifferentReturn(event.target.checked)} /> Use different return travel time</label>
-      {differentReturn && <div className="dialog-fields"><label>Return days<input type="number" min="0" step="1" value={returnDays} onChange={(event) => setReturnDays(event.target.value)} /></label><label>Return hours<input type="number" min="0" max="23" step="1" value={returnHours} onChange={(event) => setReturnHours(event.target.value)} /></label></div>}
+      <label><input type="checkbox" checked={returnAvailable} onChange={(event) => setReturnAvailable(event.target.checked)} /> Return route available</label>
+      {!returnAvailable && <p className="dialog-note">Travel is available only in the selected direction.</p>}
+      {returnAvailable && <label><input type="checkbox" checked={differentReturn} onChange={(event) => setDifferentReturn(event.target.checked)} /> Use different return travel time</label>}
+      {returnAvailable && differentReturn && <div className="dialog-fields"><label>Return days<input type="number" min="0" step="1" value={returnDays} onChange={(event) => setReturnDays(event.target.value)} /></label><label>Return hours<input type="number" min="0" max="23" step="1" value={returnHours} onChange={(event) => setReturnHours(event.target.value)} /></label></div>}
       {error && <div className="dialog-error" role="alert">{error}</div>}<div className="dialog-actions"><button type="button" onClick={onCancel} disabled={saving}>Cancel</button><button type="submit" disabled={saving}>{saving ? "Saving..." : existing ? "Save Changes" : "Create Route"}</button></div></form></Modal>;
 }
 

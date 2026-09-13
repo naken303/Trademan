@@ -112,9 +112,10 @@ export function importWorld(
             travel_days,
             travel_hours,
             reverse_travel_days,
-            reverse_travel_hours
+            reverse_travel_hours,
+            return_available
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
       for (const route of data.routes) {
@@ -126,6 +127,7 @@ export function importWorld(
           route.travelTime.hours,
           route.reverseTravelTime?.days ?? null,
           route.reverseTravelTime?.hours ?? null,
+          route.returnAvailable === false ? 0 : 1,
         );
       }
 

@@ -1,0 +1,1 @@
+ALTER TABLE routes ADD COLUMN return_available INTEGER NOT NULL DEFAULT 1;

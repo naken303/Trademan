@@ -15,6 +15,7 @@ export function RouteForm({ villages, route, onSubmit, onCancel }: Props) {
   const [to, setTo] = useState(route?.to ?? "");
   const [days, setDays] = useState(String(route?.travelTime.days ?? 0));
   const [hours, setHours] = useState(String(route?.travelTime.hours ?? 1));
+  const [returnAvailable, setReturnAvailable] = useState(route?.returnAvailable !== false);
   const [differentReturn, setDifferentReturn] = useState(route?.reverseTravelTime !== undefined);
   const [returnDays, setReturnDays] = useState(String(route?.reverseTravelTime?.days ?? 0));
   const [returnHours, setReturnHours] = useState(String(route?.reverseTravelTime?.hours ?? 1));
@@ -28,7 +29,8 @@ export function RouteForm({ villages, route, onSubmit, onCancel }: Props) {
       from,
       to,
       travelTime: { days: Number(days), hours: Number(hours) },
-      ...(differentReturn ? { reverseTravelTime: { days: Number(returnDays), hours: Number(returnHours) } } : {}),
+      returnAvailable,
+      ...(returnAvailable && differentReturn ? { reverseTravelTime: { days: Number(returnDays), hours: Number(returnHours) } } : {}),
     };
     const parsed = routeSchema.safeParse(candidate);
     if (!parsed.success) {
@@ -42,7 +44,8 @@ export function RouteForm({ villages, route, onSubmit, onCancel }: Props) {
         from: parsed.data.from,
         to: parsed.data.to,
         travelTime: parsed.data.travelTime,
-        ...(parsed.data.reverseTravelTime ? { reverseTravelTime: parsed.data.reverseTravelTime } : {}),
+        returnAvailable: parsed.data.returnAvailable,
+        ...(parsed.data.returnAvailable !== false && parsed.data.reverseTravelTime ? { reverseTravelTime: parsed.data.reverseTravelTime } : {}),
       });
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to save route");
@@ -65,9 +68,11 @@ export function RouteForm({ villages, route, onSubmit, onCancel }: Props) {
         <label>Forward days<input type="number" min="0" step="1" value={days} onChange={(event) => setDays(event.target.value)} required /></label>
         <label>Forward hours<input type="number" min="0" max="23" step="1" value={hours} onChange={(event) => setHours(event.target.value)} required /></label>
       </fieldset>
-      {!differentReturn && <small>Return travel time is optional and uses the forward travel time when omitted.</small>}
-      <label><input type="checkbox" checked={differentReturn} onChange={(event) => setDifferentReturn(event.target.checked)} /> Use different return travel time</label>
-      {differentReturn && <fieldset><legend>Return travel time (optional)</legend>
+      <label><input type="checkbox" checked={returnAvailable} onChange={(event) => setReturnAvailable(event.target.checked)} /> Return route available</label>
+      {!returnAvailable && <small>Travel is available only from From to To.</small>}
+      {returnAvailable && !differentReturn && <small>Return travel time uses the forward travel time when omitted.</small>}
+      {returnAvailable && <label><input type="checkbox" checked={differentReturn} onChange={(event) => setDifferentReturn(event.target.checked)} /> Use different return travel time</label>}
+      {returnAvailable && differentReturn && <fieldset><legend>Return travel time</legend>
         <label>Return days<input type="number" min="0" step="1" value={returnDays} onChange={(event) => setReturnDays(event.target.value)} required /></label>
         <label>Return hours<input type="number" min="0" max="23" step="1" value={returnHours} onChange={(event) => setReturnHours(event.target.value)} required /></label>
       </fieldset>}
