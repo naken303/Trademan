@@ -31,31 +31,31 @@ function sparseWorld(): WorldData {
 }
 
 describe("representative sparse-world optimizer benchmark", () => {
-  it("guides a 22/31/46 sparse world while retaining a replayable profitable plan", () => {
+  it("compares Baseline, Balanced, and Optimized on the same 22/31/46 world", () => {
     const input = sparseWorld();
-    const result = runOptimizer(input, { beamWidth: 30, maxSteps: 8, maxExpandedStates: 300 });
     expect(input.villages).toHaveLength(22);
     expect(input.routes).toHaveLength(31);
     expect(input.products).toHaveLength(46);
-    expect(result.accumulatedProfit).toBeGreaterThan(0);
-    expect(result.statistics.prunedTravelActions).toBeGreaterThan(0);
-    expect(result.statistics.expandedStates).toBeLessThanOrEqual(300);
-    expect(result.statistics.maxFrontierSize).toBeLessThanOrEqual(30);
-    expect(result.statistics.peakHeapUsedBytes).toBeGreaterThan(0);
-    expect(result.statistics.peakRssBytes).toBeGreaterThan(0);
-    console.info("sparse benchmark", JSON.stringify({
-      generatedStates: result.statistics.generatedStates,
-      expandedStates: result.statistics.expandedStates,
-      deduplicatedStates: result.statistics.deduplicatedStates,
-      maxFrontierSize: result.statistics.maxFrontierSize,
-      elapsedMs: Number(result.statistics.elapsedMs.toFixed(2)),
-      peakHeapUsedBytes: result.statistics.peakHeapUsedBytes,
-      peakRssBytes: result.statistics.peakRssBytes,
-      bestAccumulatedProfit: result.accumulatedProfit,
-      prunedTravelActions: result.statistics.prunedTravelActions,
-      prunedBuyActions: result.statistics.prunedBuyActions,
-      strategicFallbackCount: result.statistics.strategicFallbackCount,
-    }));
-    replayAndExpectResult(input, result);
+    const rows = (["baseline", "balanced", "optimized"] as const).map((preset) => {
+      const result = runOptimizer(input, { beamWidth: 30, maxSteps: 8, maxExpandedStates: 300, strategy: { preset } });
+      expect(result.accumulatedProfit).toBeGreaterThan(0);
+      expect(result.statistics.expandedStates).toBeLessThanOrEqual(300);
+      expect(result.statistics.maxFrontierSize).toBeLessThanOrEqual(30);
+      expect(result.statistics.peakHeapUsedBytes).toBeGreaterThan(0);
+      expect(result.statistics.peakRssBytes).toBeGreaterThan(0);
+      replayAndExpectResult(input, result);
+      return { preset, result };
+    });
+    const baseline = rows[0].result.statistics;
+    console.info("strategy benchmark", JSON.stringify(rows.map(({ preset, result }) => ({
+      preset, profit: result.accumulatedProfit, elapsedMs: Number(result.statistics.elapsedMs.toFixed(2)),
+      expanded: result.statistics.expandedStates, generated: result.statistics.generatedStates,
+      buyCandidates: result.statistics.generatedBuyActions, sellCandidates: result.statistics.generatedSellActions,
+      travelCandidates: result.statistics.generatedTravelActions, deduplicated: result.statistics.deduplicatedStates,
+      frontier: result.statistics.maxFrontierSize, peakHeap: result.statistics.peakHeapUsedBytes, peakRss: result.statistics.peakRssBytes,
+      runtimeReductionPercent: Number(((baseline.elapsedMs - result.statistics.elapsedMs) / baseline.elapsedMs * 100).toFixed(1)),
+      generatedReductionPercent: Number(((baseline.generatedStates - result.statistics.generatedStates) / baseline.generatedStates * 100).toFixed(1)),
+      expandedReductionPercent: Number(((baseline.expandedStates - result.statistics.expandedStates) / baseline.expandedStates * 100).toFixed(1)),
+    }))));
   });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Market, Route, SimulationState, WorldData } from "../../src/shared/types";
 import { SimulationEngine, createInitialSimulationState } from "../../src/simulation";
-import { compactOptimizerPlan, compareForResult, createOptimizerIntelligence, createOptimizerStateSignature, generateStrategicActions, runOptimizer } from "../../src/optimizer";
+import { compactOptimizerPlan, compareForResult, createOptimizerIntelligence, createOptimizerStateSignature, generateStrategicActions, resolveOptimizerStrategy, runOptimizer } from "../../src/optimizer";
 import { exactTinyMaximumProfit, materialState, replayAndExpectResult } from "./optimizer-test-helpers";
 
 function world(options: {
@@ -206,7 +206,7 @@ describe("optimizer core", () => {
     ] });
     input.products.push({ id: "Q", name: "Second", unitsPerCrate: 10 });
     input.optimization = { periodDays: 1, beamWidth: 500, maxSteps: 6 };
-    const result = runOptimizer(input, { maxExpandedStates: 10_000 });
+    const result = runOptimizer(input, { maxExpandedStates: 10_000, strategy: { preset: "optimized" } });
     expect(result.accumulatedProfit).toBe(80);
     expect(result.plan.filter((step) => step.action.type === "buy").map((step) => step.action.type === "buy" ? step.action.productId : "")).toEqual(expect.arrayContaining(["P", "Q"]));
   });
@@ -320,7 +320,7 @@ describe("optimizer core", () => {
     ] });
     input.villages = input.villages.map((village) => village.id === "B" ? { ...village, initialReserveMoney: 100 } : village);
     const state = createInitialSimulationState(input);
-    const actions = generateStrategicActions(createOptimizerIntelligence(input), state, Infinity, true);
+    const actions = generateStrategicActions(createOptimizerIntelligence(input), state, Infinity, true, resolveOptimizerStrategy({ preset: "optimized" }));
     const quantities = actions.flatMap((action) => action.type === "buy" ? [action.quantity] : []);
     expect(quantities).toEqual(expect.arrayContaining([10, 20, 100]));
     expect(quantities).not.toEqual(expect.arrayContaining([33, 50, 66]));
@@ -335,7 +335,7 @@ describe("optimizer core", () => {
     ], markets: [{ id: "C-P-D", villageId: "C", productId: "P", side: "demand", unitPrice: 8, initialQuantity: 10 }] });
     input.villages.push({ id: "X", name: "X", position: { x: 0, y: 0 }, initialReserveMoney: 1000, reset: { afterReset: { days: 1, hours: 0 } } });
     input.player.initialInventory = [{ productId: "P", quantity: 10, unitCost: 2 }];
-    const actions = generateStrategicActions(createOptimizerIntelligence(input), createInitialSimulationState(input), Infinity, true);
+    const actions = generateStrategicActions(createOptimizerIntelligence(input), createInitialSimulationState(input), Infinity, true, resolveOptimizerStrategy({ preset: "optimized" }));
     expect(actions).toContainEqual({ type: "travel", destinationId: "B" });
     expect(actions).not.toContainEqual({ type: "travel", destinationId: "X" });
   });
@@ -345,8 +345,8 @@ describe("optimizer core", () => {
       { id: "A-P-S", villageId: "A", productId: "P", side: "supply", unitPrice: 5, initialQuantity: 10 },
       { id: "B-P-D", villageId: "B", productId: "P", side: "demand", unitPrice: 5, initialQuantity: 10 },
     ] });
-    const stats = { prunedBuyActions: 0, prunedTravelActions: 0, strategicFallbackCount: 0 };
-    const actions = generateStrategicActions(createOptimizerIntelligence(input), createInitialSimulationState(input), Infinity, true, stats);
+    const stats = { generatedBuyActions: 0, generatedSellActions: 0, generatedTravelActions: 0, prunedBuyActions: 0, prunedSellActions: 0, prunedTravelActions: 0, strategicFallbackCount: 0 };
+    const actions = generateStrategicActions(createOptimizerIntelligence(input), createInitialSimulationState(input), Infinity, true, resolveOptimizerStrategy({ preset: "optimized" }), stats);
     expect(actions.some((action) => action.type === "buy")).toBe(false);
     expect(stats.prunedBuyActions).toBe(1);
   });
@@ -380,7 +380,7 @@ describe("optimizer core", () => {
     ] });
     input.villages.push({ id: "D", name: "D", position: { x: 3, y: 0 }, initialReserveMoney: 1000, reset: { afterReset: { days: 1, hours: 0 } } });
     input.products.push({ id: "Q", name: "Q", unitsPerCrate: 10 }, { id: "R", name: "R", unitsPerCrate: 10 });
-    const result = runOptimizer(input, { beamWidth: 20, maxSteps: 9, maxExpandedStates: 300 });
+    const result = runOptimizer(input, { beamWidth: 20, maxSteps: 9, maxExpandedStates: 300, strategy: { preset: "optimized" } });
     expect(result.plan.filter((step) => step.action.type === "sell").map((step) => step.action.type === "sell" ? step.action.productId : "")).toEqual(expect.arrayContaining(["P", "Q", "R"]));
   });
 });

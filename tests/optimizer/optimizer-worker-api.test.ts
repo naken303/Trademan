@@ -23,6 +23,14 @@ describe("optimizer jobs", () => {
     expect((await fetch(`${url}/api/optimizer/runs`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).status).toBe(409);
     expect((await fetch(`${url}/api/optimizer/runs/missing`)).status).toBe(404); await complete(url, first.runId);
   });
+  it("accepts strict strategy presets and rejects unknown strategy fields", async () => {
+    const url = await listen();
+    const accepted = await fetch(`${url}/api/optimizer/runs`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ strategy: { preset: "custom", smartTravelPruning: true } }) });
+    expect(accepted.status).toBe(202);
+    const runId = (await accepted.json() as { runId: string }).runId;
+    await complete(url, runId);
+    expect((await fetch(`${url}/api/optimizer/runs`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ strategy: { unknown: true } }) })).status).toBe(400);
+  });
   it("brakes cooperatively and returns a normal best-so-far result", async () => {
     const url = await listen(); const started = await (await fetch(`${url}/api/optimizer/runs`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ beamWidth: 200, maxSteps: 100, maxExpandedStates: 500000 }) })).json() as { runId: string };
     expect((await fetch(`${url}/api/optimizer/runs/${started.runId}/brake`, { method: "POST" })).status).toBe(200);

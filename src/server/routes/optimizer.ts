@@ -9,6 +9,13 @@ const requestSchema = z.object({
   periodDays: z.number().int().min(1).max(365).optional(), beamWidth: z.number().int().min(1).max(2_000).optional(),
   maxSteps: z.number().int().min(1).max(500).optional(), maxExpandedStates: z.number().int().min(1).max(500_000).optional(),
   targetProfit: z.number().finite().positive().optional(),
+  strategy: z.object({
+    preset: z.enum(["baseline", "balanced", "optimized", "custom"]).optional(),
+    smartTradeIntelligence: z.boolean().optional(), smartTravelPruning: z.boolean().optional(),
+    profitableBuyPruning: z.boolean().optional(), crateQuantityCandidates: z.boolean().optional(),
+    sellDominance: z.boolean().optional(), reachableDemandScoring: z.boolean().optional(),
+    tradeChainScoring: z.boolean().optional(),
+  }).strict().optional(),
   villageResetRemaining: z.record(z.string(), durationSchema.refine((value) => value.days > 0 || value.hours > 0)).optional(),
 }).strict();
 
@@ -21,7 +28,7 @@ export function createOptimizerRouter(manager = new OptimizerJobManager()) {
       const expected = new Set(world.villages.map((village) => village.id)); const supplied = Object.keys(parsed.data.villageResetRemaining);
       if (supplied.length !== expected.size || supplied.some((id) => !expected.has(id))) { res.status(400).json({ error: "Current reset remaining is required for every persisted village" }); return; }
     }
-    const options: OptimizerSearchOptions = { periodDays: parsed.data.periodDays ?? world.optimization.periodDays, beamWidth: parsed.data.beamWidth ?? world.optimization.beamWidth, maxSteps: parsed.data.maxSteps ?? world.optimization.maxSteps, maxExpandedStates: parsed.data.maxExpandedStates, targetProfit: parsed.data.targetProfit, villageResetRemaining: parsed.data.villageResetRemaining ?? Object.fromEntries(world.villages.map((village) => [village.id, village.reset.afterReset])) };
+    const options: OptimizerSearchOptions = { periodDays: parsed.data.periodDays ?? world.optimization.periodDays, beamWidth: parsed.data.beamWidth ?? world.optimization.beamWidth, maxSteps: parsed.data.maxSteps ?? world.optimization.maxSteps, maxExpandedStates: parsed.data.maxExpandedStates, targetProfit: parsed.data.targetProfit, strategy: parsed.data.strategy, villageResetRemaining: parsed.data.villageResetRemaining ?? Object.fromEntries(world.villages.map((village) => [village.id, village.reset.afterReset])) };
     if (!requestSchema.safeParse(options).success) { res.status(400).json({ error: "Persisted optimization settings exceed safe API limits" }); return; }
     try { const job = manager.start(world, options); res.status(202).json({ runId: job.runId, status: job.status }); }
     catch (error) { if (error instanceof Error && error.message === "OPTIMIZER_RUN_ACTIVE") res.status(409).json({ error: "An optimizer run is already active" }); else res.status(500).json({ error: "Optimizer execution failed" }); }

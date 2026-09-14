@@ -4,6 +4,7 @@ import { generateStrategicActions, type CandidateGenerationStats } from "./candi
 import { compareForFrontier, compareForResult, createDominanceScore, type ScoredSearchState } from "./scoring";
 import { createOptimizerStateSignature } from "./state-signature";
 import type { OptimizerStateStore } from "./state-store";
+import { resolveOptimizerStrategy } from "./strategy";
 import { createOptimizerIntelligence, estimateMarketCapacity, getShortestPath, getShortestTravelHours, type OptimizerIntelligence } from "./trade-intelligence";
 import type {
   OptimizerAction, OptimizerPlanStep, OptimizerResult, OptimizerSearchOptions,
@@ -28,7 +29,7 @@ function resolveOptions(world: WorldData, options: OptimizerSearchOptions): Reso
     throw new Error("Optimizer search limits must be positive integers");
   }
   if (targetProfit !== undefined && (!Number.isFinite(targetProfit) || targetProfit <= 0)) throw new Error("Optimizer target profit must be positive");
-  return { periodDays, beamWidth, maxSteps, maxExpandedStates, targetProfit };
+  return { periodDays, beamWidth, maxSteps, maxExpandedStates, targetProfit, strategy: resolveOptimizerStrategy(options.strategy) };
 }
 
 function transition(world: WorldData, state: SimulationState, action: OptimizerAction): SimulationState {
@@ -46,8 +47,8 @@ function actionKey(action: OptimizerAction): string {
   return action.type === "travel" ? `travel:${action.destinationId}` : `${action.type}:${action.productId}:${action.quantity}`;
 }
 
-function sortCandidates(context: OptimizerIntelligence, candidates: SearchNode[]): SearchNode[] {
-  return candidates.sort((left, right) => compareForFrontier(context, right, left)
+function sortCandidates(context: OptimizerIntelligence, strategy: ResolvedOptimizerSearchOptions["strategy"], candidates: SearchNode[]): SearchNode[] {
+  return candidates.sort((left, right) => compareForFrontier(context, strategy, right, left)
     || actionKey(left.plan.at(-1)!.action).localeCompare(actionKey(right.plan.at(-1)!.action)));
 }
 
@@ -124,25 +125,23 @@ export function runOptimizer(world: WorldData, options: OptimizerSearchOptions =
   const targetMode = resolved.targetProfit !== undefined;
   const deadline = targetMode ? Infinity : startHour + resolved.periodDays * 24;
   const precomputeStartedAt = performance.now();
-  const context = createOptimizerIntelligence(world);
+  const context = createOptimizerIntelligence(world, resolved.strategy);
   const precomputationMs = performance.now() - precomputeStartedAt;
   const initial: SearchNode = { state: initialState, plan: [], tradeActions: 0, firstProfitStep: null };
   let frontier = [initial];
   let best = initial;
   const cache = new Map([[createOptimizerStateSignature(initialState), initial]]);
   const maxCandidatesPerDepth = resolved.beamWidth * 8;
-  const pruningStats: CandidateGenerationStats = { prunedBuyActions: 0, prunedTravelActions: 0, strategicFallbackCount: 0 };
+  const pruningStats: CandidateGenerationStats = { generatedBuyActions: 0, generatedSellActions: 0, generatedTravelActions: 0, prunedBuyActions: 0, prunedSellActions: 0, prunedTravelActions: 0, strategicFallbackCount: 0 };
   const statistics: OptimizerSearchStatistics = { expandedStates: 0, generatedStates: 0, deduplicatedStates: 0, maxFrontierSize: 1, currentDepth: 0, currentFrontierSize: 1, bestAccumulatedProfit: 0, peakHeapUsedBytes: 0, peakRssBytes: 0, precomputationMs, ...pruningStats, terminationReason: "completed", elapsedMs: 0 };
   let terminationReason: OptimizerSearchStatistics["terminationReason"] = "completed";
   const report = () => {
     const memory = process.memoryUsage(); statistics.peakHeapUsedBytes = Math.max(statistics.peakHeapUsedBytes, memory.heapUsed); statistics.peakRssBytes = Math.max(statistics.peakRssBytes, memory.rss);
-    statistics.prunedBuyActions = pruningStats.prunedBuyActions;
-    statistics.prunedTravelActions = pruningStats.prunedTravelActions;
-    statistics.strategicFallbackCount = pruningStats.strategicFallbackCount;
+    Object.assign(statistics, pruningStats);
     statistics.bestAccumulatedProfit = best.state.accumulatedProfit;
     control.onProgress?.({ ...statistics, terminationReason, elapsedMs: performance.now() - startedAt });
   };
-  control.stateStore?.accepts(createOptimizerStateSignature(initialState), createDominanceScore(context, initial));
+  control.stateStore?.accepts(createOptimizerStateSignature(initialState), createDominanceScore(context, resolved.strategy, initial));
 
   for (let depth = 0; (targetMode || depth < resolved.maxSteps) && frontier.length > 0; depth += 1) {
     statistics.currentDepth = depth;
@@ -152,7 +151,7 @@ export function runOptimizer(world: WorldData, options: OptimizerSearchOptions =
       if (control.shouldBrake?.()) { terminationReason = "brake"; break; }
       if (!targetMode && statistics.expandedStates >= resolved.maxExpandedStates) break;
       statistics.expandedStates += 1;
-      for (const action of generateStrategicActions(context, node.state, deadline, targetMode, pruningStats).sort((left, right) => actionKey(left).localeCompare(actionKey(right)))) {
+      for (const action of generateStrategicActions(context, node.state, deadline, targetMode, resolved.strategy, pruningStats).sort((left, right) => actionKey(left).localeCompare(actionKey(right)))) {
         if (control.shouldBrake?.()) { terminationReason = "brake"; break; }
         let state: SimulationState;
         try { state = transition(world, node.state, action); } catch { continue; }
@@ -167,7 +166,7 @@ export function runOptimizer(world: WorldData, options: OptimizerSearchOptions =
         };
         const signature = createOptimizerStateSignature(state);
         const existing = nextBySignature.get(signature) ?? cache.get(signature);
-        if (existing && compareForFrontier(context, candidate, existing) <= 0) {
+        if (existing && compareForFrontier(context, resolved.strategy, candidate, existing) <= 0) {
           statistics.deduplicatedStates += 1;
           continue;
         }
@@ -175,7 +174,7 @@ export function runOptimizer(world: WorldData, options: OptimizerSearchOptions =
         if (compareForResult(world, candidate, best) > 0) best = candidate;
         if (targetMode && best.state.accumulatedProfit >= resolved.targetProfit!) { terminationReason = "targetProfit"; break; }
         if (nextBySignature.size >= maxCandidatesPerDepth * 2) {
-          const retained = sortCandidates(context, [...nextBySignature.values()]).slice(0, maxCandidatesPerDepth);
+          const retained = sortCandidates(context, resolved.strategy, [...nextBySignature.values()]).slice(0, maxCandidatesPerDepth);
           nextBySignature.clear();
           for (const retainedCandidate of retained) nextBySignature.set(createOptimizerStateSignature(retainedCandidate.state), retainedCandidate);
         }
@@ -184,11 +183,11 @@ export function runOptimizer(world: WorldData, options: OptimizerSearchOptions =
     }
     if (terminationReason === "brake" || terminationReason === "targetProfit") break;
     const survivors = [...nextBySignature.values()].filter((candidate) => {
-      const accepted = control.stateStore?.accepts(createOptimizerStateSignature(candidate.state), createDominanceScore(context, candidate)) ?? true;
+      const accepted = control.stateStore?.accepts(createOptimizerStateSignature(candidate.state), createDominanceScore(context, resolved.strategy, candidate)) ?? true;
       if (!accepted) statistics.deduplicatedStates += 1;
       return accepted;
     });
-    frontier = sortCandidates(context, survivors).slice(0, resolved.beamWidth);
+    frontier = sortCandidates(context, resolved.strategy, survivors).slice(0, resolved.beamWidth);
     cache.clear();
     for (const node of frontier) cache.set(createOptimizerStateSignature(node.state), node);
     statistics.maxFrontierSize = Math.max(statistics.maxFrontierSize, frontier.length);

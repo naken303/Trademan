@@ -1,5 +1,5 @@
 import { Worker } from "node:worker_threads";
-import type { OptimizerResult, OptimizerSearchOptions, OptimizerSearchStatistics, OptimizerWorkerRequest, OptimizerWorkerResponse } from "../../optimizer";
+import { resolveOptimizerStrategy, type OptimizerResult, type OptimizerSearchOptions, type OptimizerSearchStatistics, type OptimizerWorkerRequest, type OptimizerWorkerResponse } from "../../optimizer";
 import type { WorldData } from "../../shared/types";
 
 export class OptimizerWorkerError extends Error {
@@ -13,7 +13,7 @@ export function startOptimizerWorker(world: WorldData, options: OptimizerSearchO
   const worker = new Worker(runnerOptions.workerUrl ?? new URL("../../optimizer/workers/optimizer-worker-bootstrap.mjs", import.meta.url), { execArgv: [] });
   const brakeBuffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT);
   const brakeFlag = new Int32Array(brakeBuffer);
-  const request: OptimizerWorkerRequest = { world: structuredClone(world), options: { ...options }, brakeBuffer };
+  const request: OptimizerWorkerRequest = { world: structuredClone(world), options: structuredClone({ ...options, strategy: resolveOptimizerStrategy(options.strategy) }), brakeBuffer };
   const result = new Promise<OptimizerResult>((resolve, reject) => {
     let settled = false;
     const finish = (error?: Error, value?: OptimizerResult) => {

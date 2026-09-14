@@ -7,6 +7,7 @@ export interface OptimizerInput {
   maxSteps?: number;
   maxExpandedStates?: number;
   targetProfit?: number;
+  strategy?: OptimizerStrategyOptions;
 }
 
 export type OptimizerAction =
@@ -29,7 +30,23 @@ export interface OptimizerSearchOptions {
   maxExpandedStates?: number;
   targetProfit?: number;
   villageResetRemaining?: Record<string, Duration>;
+  strategy?: OptimizerStrategyOptions;
 }
+
+export type OptimizerStrategyPreset = "baseline" | "balanced" | "optimized" | "custom";
+
+export interface OptimizerStrategyFlags {
+  smartTradeIntelligence: boolean;
+  smartTravelPruning: boolean;
+  profitableBuyPruning: boolean;
+  crateQuantityCandidates: boolean;
+  sellDominance: boolean;
+  reachableDemandScoring: boolean;
+  tradeChainScoring: boolean;
+}
+
+export type OptimizerStrategyOptions = { preset?: OptimizerStrategyPreset } & Partial<OptimizerStrategyFlags>;
+export type ResolvedOptimizerStrategy = { preset: OptimizerStrategyPreset } & OptimizerStrategyFlags;
 
 export interface ResolvedOptimizerSearchOptions {
   periodDays: number;
@@ -37,6 +54,7 @@ export interface ResolvedOptimizerSearchOptions {
   maxSteps: number;
   maxExpandedStates: number;
   targetProfit?: number;
+  strategy: ResolvedOptimizerStrategy;
 }
 
 export interface OptimizerSearchStatistics {
@@ -50,7 +68,11 @@ export interface OptimizerSearchStatistics {
   peakHeapUsedBytes: number;
   peakRssBytes: number;
   precomputationMs: number;
+  generatedBuyActions: number;
+  generatedSellActions: number;
+  generatedTravelActions: number;
   prunedBuyActions: number;
+  prunedSellActions: number;
   prunedTravelActions: number;
   strategicFallbackCount: number;
   terminationReason: "completed" | "brake" | "targetProfit" | "maxSteps" | "maxExpandedStates" | "frontierExhausted";

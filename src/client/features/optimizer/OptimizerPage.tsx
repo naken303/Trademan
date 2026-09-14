@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { getInventoryCrates } from "../../../domain/inventory";
 import { getTravelTime } from "../../../domain/route";
-import type { OptimizerPlanStep } from "../../../optimizer";
+import { OPTIMIZER_STRATEGY_PRESETS, type OptimizerPlanStep, type OptimizerStrategyFlags, type OptimizerStrategyPreset } from "../../../optimizer";
 import type { WorldData } from "../../../shared/types";
 import {
   VillageResetSetup,
@@ -18,6 +18,15 @@ import "./OptimizerPage.css";
 import { formatDuration } from "../../utils/format";
 
 const limits = { periodDays: 365, beamWidth: 2_000, maxSteps: 500, maxExpandedStates: 500_000 } as const;
+const strategyHelp: Record<keyof OptimizerStrategyFlags, { label: string; help: string }> = {
+  smartTradeIntelligence: { label: "Smart Trade Intelligence", help: "Precomputes profitable supply-demand opportunities before simulation." },
+  smartTravelPruning: { label: "Smart Travel Pruning", help: "Skips routes unlikely to lead toward useful trade opportunities." },
+  profitableBuyPruning: { label: "Profitable Buy Pruning", help: "Skips buying products with no plausible profitable reachable demand." },
+  crateQuantityCandidates: { label: "Crate-based Quantity Candidates", help: "Prefers economically meaningful whole-crate quantities to reduce quantity branching." },
+  sellDominance: { label: "Sell Dominance", help: "Reduces redundant partial-sell candidates when selling more is strategically equivalent." },
+  reachableDemandScoring: { label: "Reachable Demand Scoring", help: "Values inventory based on reachable demand, travel time, demand quantity, and reserve." },
+  tradeChainScoring: { label: "Trade Chain Scoring", help: "Favors states that can continue into another profitable trade after the next sale." },
+};
 type FormValues = Record<keyof typeof limits, string> & { targetProfit: string };
 const timeLabel = (time: { day: number; hour: number }) => `Day ${time.day}, ${time.hour}:00`;
 const durationLabel = (duration?: { days: number; hours: number }) => duration ? formatDuration(duration.days, duration.hours) : "Unknown duration";
@@ -79,6 +88,8 @@ export function OptimizerPage() {
   const [running, setRunning] = useState(false);
   const [job, setJob] = useState<OptimizerJobResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [strategyPreset, setStrategyPreset] = useState<OptimizerStrategyPreset>("balanced");
+  const [customStrategy, setCustomStrategy] = useState<OptimizerStrategyFlags>({ ...OPTIMIZER_STRATEGY_PRESETS.baseline });
 
   async function load() {
     try { const loaded = await getWorld(); setWorld(loaded); setValues(initialForm(loaded)); setResets(createVillageResetDraft(loaded.villages)); setShowResetErrors(false); setError(null); }
@@ -98,7 +109,8 @@ export function OptimizerPage() {
       const { initialization } = parseVillageResetDraft(world.villages, resets);
       setShowResetErrors(true);
       if (!initialization) throw new Error("Check the highlighted Current Reset values.");
-      const options = { ...validate(values), ...initialization };
+      const strategy = strategyPreset === "custom" ? { preset: strategyPreset, ...customStrategy } : { preset: strategyPreset };
+      const options = { ...validate(values), ...initialization, strategy };
       setRunning(true); setError(null);
       setJob(await startOptimizer(options));
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Optimizer failed."); setRunning(false); }
@@ -118,6 +130,11 @@ export function OptimizerPage() {
         <div className="optimizer-section-heading"><h3 id="optimizer-search-heading">Search Configuration</h3><p>Higher Beam width explores more alternatives but uses more memory. Use Brake to keep the best result found so far.</p></div>
         <div className="optimizer-search-grid">{fields.map(([key, label]) => <label key={key}>{label}<input aria-label={label} type="number" min="1" max={limits[key]} step="1" value={values[key]} disabled={running || (targetMode && key !== "beamWidth")} onChange={(event) => setValues({ ...values, [key]: event.target.value })} /></label>)}<label>Profit target (optional)<input aria-label="Profit target" type="number" min="0" step="1" value={values.targetProfit} disabled={running} onChange={(event) => setValues({ ...values, targetProfit: event.target.value })} /></label></div>
         {targetMode && <div className="optimizer-notice">Target mode ignores Optimization period, Maximum plan steps, and Maximum expanded states. Beam width remains the memory limit; use Brake to stop early.</div>}
+        <div className="optimizer-strategy">
+          <label>Search Strategy<select aria-label="Search Strategy" value={strategyPreset} disabled={running} onChange={(event) => setStrategyPreset(event.target.value as OptimizerStrategyPreset)}><option value="baseline">Baseline</option><option value="balanced">Balanced</option><option value="optimized">Optimized</option><option value="custom">Custom</option></select></label>
+          <small>Baseline keeps the wider legacy search. Balanced enables safer reductions. Optimized enables every approved heuristic.</small>
+          {strategyPreset === "custom" && <fieldset><legend>Advanced Search Strategy</legend>{(Object.entries(strategyHelp) as [keyof OptimizerStrategyFlags, { label: string; help: string }][]).map(([key, copy]) => <label key={key}><input type="checkbox" checked={customStrategy[key]} disabled={running} onChange={(event) => setCustomStrategy({ ...customStrategy, [key]: event.target.checked })} /><span><strong>{copy.label}</strong><small>{copy.help}</small></span></label>)}</fieldset>}
+        </div>
         <div className="optimizer-mode"><strong>Continuous mode: {world.player.continuousMode ? "On" : "Off"}</strong><small>Used only as a tie-break preference; realized profit remains the primary goal.</small></div>
       </section>
       <VillageResetSetup villages={world.villages} values={resets} onChange={setResets} disabled={running} showAllErrors={showResetErrors} />
@@ -134,13 +151,14 @@ export function OptimizerPage() {
         <div><span>Route</span><strong>{villageName(world.player.currentVillageId)} → {villageName(result.finalState.player.location)}</strong></div>
         <div><span>Simulation time</span><strong>{timeLabel({ day: world.simulation.startDay, hour: world.simulation.startHour })} → {timeLabel(result.finalState.time)}</strong></div>
         <div><span>Plan actions</span><strong>{result.plan.length}</strong></div><div><span>Search time</span><strong>{result.statistics.elapsedMs.toFixed(1)} ms</strong></div>
+        <div><span>Strategy</span><strong>{result.options.strategy?.preset ?? "Legacy"}</strong></div>
       </div>
       {result.statistics.terminationReason === "brake" && <div className="optimizer-notice">Best result found so far. Search was stopped with Brake.</div>}
       {result.statistics.terminationReason === "targetProfit" && <div className="optimizer-notice">Profit target reached.</div>}
       {result.accumulatedProfit <= 0 && <div className="optimizer-notice">No profitable plan was found within the explored states.</div>}
       <div className="optimizer-results-grid"><section className="optimizer-card"><h3>Best plan</h3>{result.plan.length === 0 ? <p>No actions were selected.</p> : <ol className="optimizer-plan">{result.plan.map((step, index) => <StepRow key={index} step={step} index={index} world={world} previousVillageId={index === 0 ? world.player.currentVillageId : result.plan[index - 1].villageId} previousProfit={index === 0 ? 0 : result.plan[index - 1].accumulatedProfit} />)}</ol>}</section>
         <div className="optimizer-side"><section className="optimizer-card"><h3>Final state</h3><dl><div><dt>Village</dt><dd>{villageName(result.finalState.player.location)}</dd></div><div><dt>Money</dt><dd>{result.finalState.player.money.toLocaleString()} {world.settings.currency}</dd></div><div><dt>Realized profit</dt><dd>{result.finalState.accumulatedProfit.toLocaleString()} {world.settings.currency}</dd></div><div><dt>Crates</dt><dd>{usedCrates} used / {world.player.inventoryCapacityCrates} capacity</dd></div><div><dt>Time</dt><dd>{timeLabel(result.finalState.time)}</dd></div></dl><h4>Inventory</h4>{result.finalState.player.inventory.length === 0 ? <p>Inventory is empty.</p> : <ul>{result.finalState.player.inventory.map((item) => <li key={item.productId}>{productName(item.productId)}: {item.quantity.toLocaleString()}</li>)}</ul>}</section>
-          <section className="optimizer-card optimizer-statistics"><h3>Search statistics</h3><dl><div><dt>Expanded</dt><dd>{result.statistics.expandedStates.toLocaleString()}</dd></div><div><dt>Generated</dt><dd>{result.statistics.generatedStates.toLocaleString()}</dd></div><div><dt>Deduplicated</dt><dd>{result.statistics.deduplicatedStates.toLocaleString()}</dd></div><div><dt>Maximum frontier</dt><dd>{result.statistics.maxFrontierSize.toLocaleString()}</dd></div><div><dt>Elapsed</dt><dd>{result.statistics.elapsedMs.toFixed(1)} ms</dd></div></dl></section></div></div>
+          <section className="optimizer-card optimizer-statistics"><h3>Search statistics</h3><dl><div><dt>Expanded</dt><dd>{result.statistics.expandedStates.toLocaleString()}</dd></div><div><dt>Generated states</dt><dd>{result.statistics.generatedStates.toLocaleString()}</dd></div><div><dt>Buy / Sell / Travel candidates</dt><dd>{(result.statistics.generatedBuyActions ?? 0).toLocaleString()} / {(result.statistics.generatedSellActions ?? 0).toLocaleString()} / {(result.statistics.generatedTravelActions ?? 0).toLocaleString()}</dd></div><div><dt>Pruned Buy / Sell / Travel</dt><dd>{(result.statistics.prunedBuyActions ?? 0).toLocaleString()} / {(result.statistics.prunedSellActions ?? 0).toLocaleString()} / {(result.statistics.prunedTravelActions ?? 0).toLocaleString()}</dd></div><div><dt>Deduplicated</dt><dd>{result.statistics.deduplicatedStates.toLocaleString()}</dd></div><div><dt>Maximum frontier</dt><dd>{result.statistics.maxFrontierSize.toLocaleString()}</dd></div><div><dt>Elapsed</dt><dd>{result.statistics.elapsedMs.toFixed(1)} ms</dd></div></dl></section></div></div>
     </>}
   </section>;
 }

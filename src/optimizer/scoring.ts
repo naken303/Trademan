@@ -1,7 +1,7 @@
 import type { SimulationState, WorldData } from "../shared/types";
 import { canAddInventory } from "../domain/inventory";
 import { estimateMarketCapacity, getShortestTravelHours, type OptimizerIntelligence } from "./trade-intelligence";
-import type { OptimizerPlanStep } from "./types";
+import type { OptimizerPlanStep, ResolvedOptimizerStrategy } from "./types";
 import type { DominanceScore } from "./state-store";
 
 export interface ScoredSearchState {
@@ -40,6 +40,14 @@ export function reachableInventoryPotential(intelligence: OptimizerIntelligence,
   return total;
 }
 
+/** Legacy global best-demand estimate retained for Baseline comparison. */
+export function liquidationPotential(world: WorldData, candidate: ScoredSearchState): number {
+  return candidate.state.player.inventory.reduce((total, item) => {
+    const bestPrice = world.markets.filter((market) => market.side === "demand" && market.productId === item.productId).reduce((best, market) => Math.max(best, market.unitPrice), 0);
+    return total + Math.max(0, bestPrice * item.quantity - (candidate.state.player.inventoryCost[item.productId] ?? 0));
+  }, 0);
+}
+
 /** A shallow one-crate continuation signal in the same travel-discounted currency units. */
 export function tradeChainPotential(intelligence: OptimizerIntelligence, candidate: ScoredSearchState): number {
   let best = 0;
@@ -54,23 +62,29 @@ export function tradeChainPotential(intelligence: OptimizerIntelligence, candida
   return best;
 }
 
-export function searchHeuristicScore(intelligence: OptimizerIntelligence, candidate: ScoredSearchState): number {
-  return candidate.state.accumulatedProfit + reachableInventoryPotential(intelligence, candidate) + tradeChainPotential(intelligence, candidate);
+function configuredPotential(intelligence: OptimizerIntelligence, strategy: ResolvedOptimizerStrategy, candidate: ScoredSearchState): number {
+  const inventory = strategy.reachableDemandScoring ? reachableInventoryPotential(intelligence, candidate) : liquidationPotential(intelligence.world, candidate);
+  return inventory + (strategy.tradeChainScoring ? tradeChainPotential(intelligence, candidate) : 0);
 }
 
-export function compareForFrontier(intelligence: OptimizerIntelligence, left: ScoredSearchState, right: ScoredSearchState): number {
-  return compareNumber(searchHeuristicScore(intelligence, left), searchHeuristicScore(intelligence, right))
+export function searchHeuristicScore(intelligence: OptimizerIntelligence, strategy: ResolvedOptimizerStrategy, candidate: ScoredSearchState): number {
+  return candidate.state.accumulatedProfit + configuredPotential(intelligence, strategy, candidate);
+}
+
+export function compareForFrontier(intelligence: OptimizerIntelligence, strategy: ResolvedOptimizerStrategy, left: ScoredSearchState, right: ScoredSearchState): number {
+  const strategicScoring = strategy.reachableDemandScoring || strategy.tradeChainScoring;
+  return (strategicScoring ? compareNumber(searchHeuristicScore(intelligence, strategy, left), searchHeuristicScore(intelligence, strategy, right)) : 0)
     || compareNumber(left.state.accumulatedProfit, right.state.accumulatedProfit)
-    || compareNumber(reachableInventoryPotential(intelligence, left), reachableInventoryPotential(intelligence, right))
+    || compareNumber(configuredPotential(intelligence, strategy, left), configuredPotential(intelligence, strategy, right))
     || (intelligence.world.player.continuousMode ? left.tradeActions - right.tradeActions : 0)
     || compareNumber(left.state.player.money, right.state.player.money)
     || right.plan.length - left.plan.length;
 }
 
-export function createDominanceScore(intelligence: OptimizerIntelligence, candidate: ScoredSearchState): DominanceScore {
+export function createDominanceScore(intelligence: OptimizerIntelligence, strategy: ResolvedOptimizerStrategy, candidate: ScoredSearchState): DominanceScore {
   return {
     accumulatedProfit: candidate.state.accumulatedProfit,
-    liquidationPotential: reachableInventoryPotential(intelligence, candidate) + tradeChainPotential(intelligence, candidate),
+    liquidationPotential: configuredPotential(intelligence, strategy, candidate),
     tradeActions: candidate.tradeActions,
     playerMoney: candidate.state.player.money,
     planLength: candidate.plan.length,

@@ -3,20 +3,20 @@
 ## Last Updated
 
 - Date: 2026-09-14
-- Commit: `feb79b2` (`Guide optimizer with trade intelligence and smart pruning`)
+- Commit: task commit at repository `HEAD`
 - Branch: main
 
 ## Current Phase
 
-- Phase: Guided optimizer search complete
-- Current Task: Precompute trade intelligence and prune low-value optimizer candidates before simulation
+- Phase: Configurable optimizer search strategies complete
+- Current Task: Add per-run Baseline, Balanced, Optimized, and Custom search strategies
 - Task Status: `completed`
 
 ## Repository Status
 
-- Working Tree: Clean after committing and pushing the guided optimizer change.
-- Latest Commit: `feb79b2` (`Guide optimizer with trade intelligence and smart pruning`).
-- Notes: Optimizer precomputes sparse market indexes, the effective route graph, deterministic shortest paths, commercial villages, and profitable Supply-to-Demand opportunities once per run. Candidate generation uses those indexes before SimulationEngine verification.
+- Working Tree: This note describes the task commit at repository HEAD; checkout-local state must be confirmed with Git status.
+- Latest Commit: Optional optimizer strategy task commit at repository HEAD.
+- Notes: Search strategy is a per-run API/Worker snapshot and does not modify persisted WorldData. Baseline disables all optional guidance, Balanced enables the five lower-risk strategies, Optimized enables all seven, and Custom exposes each flag independently.
   The Optimizer page restores its running state from an active job after reload and keeps Brake visible after start.
   Returned plans compact consecutive same-village Buy/Sell actions for the same product without changing the simulated final state.
   Target mode ignores period/steps/expanded-state stopping conditions, retains Beam Width as the active memory bound, and relies on target completion, frontier exhaustion, or Brake to finish.
@@ -30,16 +30,16 @@
 - Status: `PASS`
 - Date: 2026-09-14
 - Error Summary: None
-- Details: Production build completed successfully with the guided optimizer modules.
+- Details: Production build completed successfully with optional optimizer strategy contracts and UI.
 
 ### Test
 
 - Command: `npm run test`
 - Status: `PASS`
 - Date: 2026-09-14
-- Tests: 22 test files passed; 105 tests passed.
+- Tests: 23 test files passed; 114 tests passed.
 - Error Summary: None
-- Details: Full Vitest suite completed successfully, including worker, stockpile, continuous-chain, quantity, pruning, replay, and sparse benchmark coverage.
+- Details: Full Vitest suite completed successfully, including preset/custom resolution, crate candidates, pruning switches, reset safety, replay, Brake/target behavior, Worker/API validation, and the three-preset benchmark.
 
 ### Lint
 
@@ -47,7 +47,7 @@
 - Status: `PASS`
 - Date: 2026-09-14
 - Error Summary: None
-- Details: ESLint completed successfully.
+- Details: ESLint completed successfully after the strategy UI and optimizer changes.
 
 ### E2E
 
@@ -65,10 +65,10 @@
 
 ## Changes In Last Task
 
-- Files changed: Optimizer intelligence, candidate generation, scoring/search integration, statistics, focused optimizer tests, sparse benchmark, small E2E compatibility fixes, and this status note.
-- What changed: Added run-scoped market/route indexes, deterministic shortest paths, profitable opportunity indexing, strategic travel/BUY pruning, economic quantities, bounded SELL dominance, reachable reserve/demand/time-aware inventory potential, and shallow trade-chain scoring.
-- Why: Reduce blind SimulationEngine transitions while retaining profitable stockpiles, multi-hop paths, multi-product plans, and continuous trade chains.
-- Behavior affected: Frontier ordering now uses a composite realized-plus-reachable-potential heuristic; final result comparison still uses realized accumulated profit first. Every emitted BUY/SELL/TRAVEL transition remains verified by SimulationEngine.
+- Files changed: Optimizer strategy/types, candidate generation, scoring/search integration, Worker/API boundary, Optimizer UI/styles, focused optimizer/API tests, benchmark, and this status note.
+- What changed: Added centralized immutable strategy presets and raw flags; Baseline legacy candidates/scoring; optional crate, BUY, SELL, travel and scoring guidance; resolved result metadata; candidate counters; strict API validation; and per-run UI controls.
+- Why: Allow direct A/B comparison and selective tuning without changing WorldData or business rules.
+- Behavior affected: Balanced is the default. Final result ranking remains realized-profit-first and all transitions remain SimulationEngine-authoritative. Existing saved UI output without strategy/candidate metadata remains renderable.
 
 ## Known Issues
 
@@ -95,6 +95,12 @@
    - Problem: Inventory cannot always be fully sold when reachable demand, reserve money, or remaining normal-mode time is insufficient.
    - Impact: The final plan can retain unsellable inventory.
    - Recommended action: Increase the period, use Target mode, or adjust market demand/reserves.
+
+5. Low
+   - Location: Balanced optimizer preset benchmark
+   - Problem: On the current 22/31/46 synthetic fixture, Balanced generated 1,574 states versus Baseline 1,458 and ran 3.3% slower because legacy SELL candidates remain enabled by design.
+   - Impact: Balanced is safer than Optimized but is not faster on every world shape.
+   - Recommended action: Compare presets on production WorldData and use Optimized when its stronger SELL reduction is acceptable.
 
 ## Completed Milestones
 
@@ -131,7 +137,7 @@
 
 ## Remaining Work
 
-1. Validate and tune guided-search defaults against the user's current production WorldData without changing business rules.
+1. Validate Baseline/Balanced/Optimized against the user's production WorldData and choose a preferred preset for that world.
 2. Continue release packaging and real-world optimizer stress validation.
 
 ## Important Notes For ChatGPT
@@ -188,10 +194,22 @@
 - Current Reset card edits remain client-local until Start Simulation or Run Optimizer; E2E verified that editing does not issue Village persistence requests.
 - Responsive browser inspection passed at 1440, 1024, 768, and 390 px for both setup pages, including local error presentation and Optimizer results; no page-level horizontal overflow was observed.
 - Representative 22-village/31-route/46-product sparse benchmark: 160 expanded, 439 generated, 44 deduplicated, frontier 30, 139 travel actions pruned, 600 realized profit, 82.08 ms, peak heap 22,493,752 bytes, peak RSS 81,735,680 bytes. Values are host/run-specific; replay passed.
-- Latest verification: build PASS, 22 Vitest files/105 tests PASS, lint PASS, 4 Playwright E2E flows PASS.
+- Strategy risk guidance: lower risk = trade precomputation, crate candidates, reachable-demand scoring; medium = travel/BUY pruning; higher heuristic impact = SELL dominance and trade-chain scoring.
+- Presets: Baseline has all seven flags OFF; Balanced enables smartTradeIntelligence, smartTravelPruning, profitableBuyPruning, crateQuantityCandidates, and reachableDemandScoring; Optimized enables all seven; Custom resolves explicit booleans once per run.
+- Latest three-preset 22-village/31-route/46-product benchmark (same world/options; host-specific):
+
+| Preset | Profit | Generated | Expanded | Buy/Sell/Travel candidates | Runtime ms | Deduplicated | Frontier | Peak heap | Peak RSS |
+| --- | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| Baseline | 600 | 1,458 | 197 | 594 / 298 / 566 | 216.79 | 510 | 30 | 30,179,264 | 108,249,088 |
+| Balanced | 600 | 1,574 | 163 | 15 / 1,212 / 347 | 223.88 | 778 | 30 | 37,918,616 | 144,031,744 |
+| Optimized | 600 | 439 | 160 | 54 / 53 / 332 | 71.64 | 44 | 30 | 53,394,192 | 146,087,936 |
+
+- Relative to Baseline: Balanced runtime -3.3% (slower), generated states -8.0% (more), expanded states reduced 17.3%; Optimized runtime reduced 67.0%, generated states reduced 69.9%, expanded states reduced 18.8%.
+- Benchmark plans for all three presets replayed through SimulationEngine and achieved the same realized profit. The optimizer remains heuristic Beam Search and does not guarantee global optimality.
+- Latest verification: build PASS, 23 Vitest files/114 tests PASS, lint PASS, 4 Playwright E2E flows PASS; focused Worker/API smoke 4 tests PASS.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-14 | `feb79b2` | PASS | PASS | PASS | PASS | Guided optimizer: 22 files/105 tests, 4 E2E flows, worker smoke, stockpile/chain fixtures, and 22/31/46 sparse benchmark passed. |
+| 2026-09-14 | `HEAD` | PASS | PASS | PASS | PASS | Optional strategies: 23 files/114 tests, 4 E2E flows, 4 Worker/API smoke tests, and Baseline/Balanced/Optimized benchmark passed. |

@@ -1,5 +1,6 @@
 import { getTravelTime } from "../domain/route";
 import type { Market, Product, SimulationState, WorldData } from "../shared/types";
+import type { ResolvedOptimizerStrategy } from "./types";
 
 export interface TradeOpportunity {
   productId: string;
@@ -18,6 +19,7 @@ export interface TradeOpportunity {
 export interface OptimizerIntelligence {
   world: WorldData;
   productsById: ReadonlyMap<string, Product>;
+  marketsById: ReadonlyMap<string, Market>;
   marketsByVillage: ReadonlyMap<string, readonly Market[]>;
   supplyMarketsByProduct: ReadonlyMap<string, readonly Market[]>;
   demandMarketsByProduct: ReadonlyMap<string, readonly Market[]>;
@@ -54,8 +56,9 @@ function shortestPaths(source: string, destinations: ReadonlyMap<string, readonl
 }
 
 /** Immutable, run-scoped strategic data derived only from the validated WorldData snapshot. */
-export function createOptimizerIntelligence(world: WorldData): OptimizerIntelligence {
+export function createOptimizerIntelligence(world: WorldData, strategy?: ResolvedOptimizerStrategy): OptimizerIntelligence {
   const productsById = new Map(world.products.map((product) => [product.id, product]));
+  const marketsById = new Map(world.markets.map((market) => [market.id, market]));
   const marketsByVillage = new Map<string, Market[]>();
   const supplyMarketsByProduct = new Map<string, Market[]>();
   const demandMarketsByProduct = new Map<string, Market[]>();
@@ -82,7 +85,8 @@ export function createOptimizerIntelligence(world: WorldData): OptimizerIntellig
 
   const opportunitiesByProduct = new Map<string, TradeOpportunity[]>();
   const opportunitiesBySupplyMarket = new Map<string, TradeOpportunity[]>();
-  for (const [productId, supplies] of supplyMarketsByProduct) {
+  const needsTradeOpportunities = strategy === undefined || strategy.smartTradeIntelligence || strategy.smartTravelPruning || strategy.profitableBuyPruning || strategy.tradeChainScoring;
+  for (const [productId, supplies] of needsTradeOpportunities ? supplyMarketsByProduct : []) {
     const product = productsById.get(productId);
     if (!product) continue;
     for (const supply of supplies) for (const demand of demandMarketsByProduct.get(productId) ?? []) {
@@ -109,7 +113,7 @@ export function createOptimizerIntelligence(world: WorldData): OptimizerIntellig
   for (const from of [...commercialVillages]) for (const to of [...commercialVillages]) {
     for (const villageId of paths.get(from)?.get(to) ?? []) commercialVillages.add(villageId);
   }
-  return { world, productsById, marketsByVillage, supplyMarketsByProduct, demandMarketsByProduct, destinationsByVillage, shortestTravelHours, paths, opportunitiesByProduct, opportunitiesBySupplyMarket, commercialVillages };
+  return { world, productsById, marketsById, marketsByVillage, supplyMarketsByProduct, demandMarketsByProduct, destinationsByVillage, shortestTravelHours, paths, opportunitiesByProduct, opportunitiesBySupplyMarket, commercialVillages };
 }
 
 export function getShortestTravelHours(intelligence: OptimizerIntelligence, from: string, to: string) {
