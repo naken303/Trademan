@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Market, Route, SimulationState, WorldData } from "../../src/shared/types";
 import { SimulationEngine, createInitialSimulationState } from "../../src/simulation";
-import { compactOptimizerPlan, compareForResult, createOptimizerStateSignature, runOptimizer } from "../../src/optimizer";
+import { compactOptimizerPlan, compareForResult, createOptimizerIntelligence, createOptimizerStateSignature, generateStrategicActions, runOptimizer } from "../../src/optimizer";
 import { exactTinyMaximumProfit, materialState, replayAndExpectResult } from "./optimizer-test-helpers";
 
 function world(options: {
@@ -168,7 +168,8 @@ describe("optimizer core", () => {
     const reorderedResult = runOptimizer(reordered);
     expect(first.plan).toEqual(second.plan);
     expect(materialState(first.finalState)).toEqual(materialState(second.finalState));
-    expect({ ...first.statistics, elapsedMs: 0 }).toEqual({ ...second.statistics, elapsedMs: 0 });
+    const stableStatistics = (result: typeof first) => ({ ...result.statistics, elapsedMs: 0, precomputationMs: 0, peakHeapUsedBytes: 0, peakRssBytes: 0 });
+    expect(stableStatistics(first)).toEqual(stableStatistics(second));
     expect(reorderedResult.plan).toEqual(first.plan);
     expect(materialState(reorderedResult.finalState)).toEqual(materialState(first.finalState));
   });
@@ -295,5 +296,91 @@ describe("optimizer core", () => {
       { state: { ...initial, accumulatedProfit: 10 }, plan: [], tradeActions: 1, firstProfitStep: 1 },
       { state: { ...initial, accumulatedProfit: 9 }, plan: [], tradeActions: 100, firstProfitStep: 1 },
     )).toBeGreaterThan(0);
+  });
+
+  it("precomputes sparse markets, profitable opportunities, and deterministic multi-hop paths", () => {
+    const input = world({ routes: [
+      { id: "A-B", from: "A", to: "B", travelTime: { days: 0, hours: 1 } },
+      { id: "B-C", from: "B", to: "C", travelTime: { days: 0, hours: 2 } },
+    ], markets: [
+      { id: "A-P-S", villageId: "A", productId: "P", side: "supply", unitPrice: 3, initialQuantity: 100 },
+      { id: "C-P-D", villageId: "C", productId: "P", side: "demand", unitPrice: 8, initialQuantity: 30 },
+    ] });
+    const intelligence = createOptimizerIntelligence(input);
+    expect(intelligence.marketsByVillage.get("B")).toBeUndefined();
+    expect(intelligence.paths.get("A")?.get("C")).toEqual(["A", "B", "C"]);
+    expect(intelligence.shortestTravelHours.get("A")?.get("C")).toBe(3);
+    expect(intelligence.opportunitiesByProduct.get("P")?.[0]).toMatchObject({ supplyVillageId: "A", demandVillageId: "C", grossMarginPerUnit: 5 });
+  });
+
+  it("uses demand, reserve, crate, cash, and capacity boundaries instead of generic fractions", () => {
+    const input = world({ money: 10_000, capacity: 10, markets: [
+      { id: "A-P-S", villageId: "A", productId: "P", side: "supply", unitPrice: 2, initialQuantity: 100 },
+      { id: "B-P-D", villageId: "B", productId: "P", side: "demand", unitPrice: 5, initialQuantity: 30 },
+    ] });
+    input.villages = input.villages.map((village) => village.id === "B" ? { ...village, initialReserveMoney: 100 } : village);
+    const state = createInitialSimulationState(input);
+    const actions = generateStrategicActions(createOptimizerIntelligence(input), state, Infinity, true);
+    const quantities = actions.flatMap((action) => action.type === "buy" ? [action.quantity] : []);
+    expect(quantities).toEqual(expect.arrayContaining([10, 20, 100]));
+    expect(quantities).not.toEqual(expect.arrayContaining([33, 50, 66]));
+    expect(quantities.length).toBeLessThanOrEqual(4);
+  });
+
+  it("prunes unrelated travel but keeps the next hop to a multi-hop demand", () => {
+    const input = world({ routes: [
+      { id: "A-B", from: "A", to: "B", travelTime: { days: 0, hours: 1 } },
+      { id: "B-C", from: "B", to: "C", travelTime: { days: 0, hours: 1 } },
+      { id: "A-X", from: "A", to: "X", travelTime: { days: 0, hours: 1 }, returnAvailable: false },
+    ], markets: [{ id: "C-P-D", villageId: "C", productId: "P", side: "demand", unitPrice: 8, initialQuantity: 10 }] });
+    input.villages.push({ id: "X", name: "X", position: { x: 0, y: 0 }, initialReserveMoney: 1000, reset: { afterReset: { days: 1, hours: 0 } } });
+    input.player.initialInventory = [{ productId: "P", quantity: 10, unitCost: 2 }];
+    const actions = generateStrategicActions(createOptimizerIntelligence(input), createInitialSimulationState(input), Infinity, true);
+    expect(actions).toContainEqual({ type: "travel", destinationId: "B" });
+    expect(actions).not.toContainEqual({ type: "travel", destinationId: "X" });
+  });
+
+  it("does not strategically buy a product with no profitable reachable demand", () => {
+    const input = world({ markets: [
+      { id: "A-P-S", villageId: "A", productId: "P", side: "supply", unitPrice: 5, initialQuantity: 10 },
+      { id: "B-P-D", villageId: "B", productId: "P", side: "demand", unitPrice: 5, initialQuantity: 10 },
+    ] });
+    const stats = { prunedBuyActions: 0, prunedTravelActions: 0, strategicFallbackCount: 0 };
+    const actions = generateStrategicActions(createOptimizerIntelligence(input), createInitialSimulationState(input), Infinity, true, stats);
+    expect(actions.some((action) => action.type === "buy")).toBe(false);
+    expect(stats.prunedBuyActions).toBe(1);
+  });
+
+  it("retains a larger future stockpile over a small immediate-profit branch with a narrow beam", () => {
+    const input = world({ capacity: 2, money: 40, routes: [
+      { id: "A-B", from: "A", to: "B", travelTime: { days: 0, hours: 1 } },
+      { id: "B-C", from: "B", to: "C", travelTime: { days: 0, hours: 1 } },
+    ], markets: [
+      { id: "A-P-S", villageId: "A", productId: "P", side: "supply", unitPrice: 2, initialQuantity: 20 },
+      { id: "B-P-D", villageId: "B", productId: "P", side: "demand", unitPrice: 3, initialQuantity: 2 },
+      { id: "C-P-D", villageId: "C", productId: "P", side: "demand", unitPrice: 10, initialQuantity: 20 },
+    ] });
+    const result = runOptimizer(input, { beamWidth: 1, maxSteps: 4, maxExpandedStates: 20 });
+    expect(result.accumulatedProfit).toBeGreaterThan(2);
+    expect(result.plan.some((step) => step.villageId === "C" && step.action.type === "sell")).toBe(true);
+  });
+
+  it("finds a continuous three-product trade chain", () => {
+    const input = world({ capacity: 1, money: 20, routes: [
+      { id: "A-B", from: "A", to: "B", travelTime: { days: 0, hours: 1 } },
+      { id: "B-C", from: "B", to: "C", travelTime: { days: 0, hours: 1 } },
+      { id: "C-D", from: "C", to: "D", travelTime: { days: 0, hours: 1 } },
+    ], markets: [
+      { id: "A-P-S", villageId: "A", productId: "P", side: "supply", unitPrice: 1, initialQuantity: 10 },
+      { id: "B-P-D", villageId: "B", productId: "P", side: "demand", unitPrice: 2, initialQuantity: 10 },
+      { id: "B-Q-S", villageId: "B", productId: "Q", side: "supply", unitPrice: 2, initialQuantity: 10 },
+      { id: "C-Q-D", villageId: "C", productId: "Q", side: "demand", unitPrice: 4, initialQuantity: 10 },
+      { id: "C-R-S", villageId: "C", productId: "R", side: "supply", unitPrice: 4, initialQuantity: 10 },
+      { id: "D-R-D", villageId: "D", productId: "R", side: "demand", unitPrice: 8, initialQuantity: 10 },
+    ] });
+    input.villages.push({ id: "D", name: "D", position: { x: 3, y: 0 }, initialReserveMoney: 1000, reset: { afterReset: { days: 1, hours: 0 } } });
+    input.products.push({ id: "Q", name: "Q", unitsPerCrate: 10 }, { id: "R", name: "R", unitsPerCrate: 10 });
+    const result = runOptimizer(input, { beamWidth: 20, maxSteps: 9, maxExpandedStates: 300 });
+    expect(result.plan.filter((step) => step.action.type === "sell").map((step) => step.action.type === "sell" ? step.action.productId : "")).toEqual(expect.arrayContaining(["P", "Q", "R"]));
   });
 });

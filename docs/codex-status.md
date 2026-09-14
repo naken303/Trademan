@@ -2,21 +2,21 @@
 
 ## Last Updated
 
-- Date: 2026-09-13
-- Commit: `1667105` (`Add optional one-way routes`)
+- Date: 2026-09-14
+- Commit: Pending (`Guide optimizer with trade intelligence and smart pruning`)
 - Branch: main
 
 ## Current Phase
 
-- Phase: World-management and optimizer-output usability complete
-- Current Task: Add canvas route deletion, management filters, and session-only optimizer output retention
+- Phase: Guided optimizer search complete
+- Current Task: Precompute trade intelligence and prune low-value optimizer candidates before simulation
 - Task Status: `completed`
 
 ## Repository Status
 
-- Working Tree: Usability changes are ready to commit.
-- Latest Commit: `cee908c` (`Update route status note`).
-- Notes: Routes remain bidirectional by default. A route may now explicitly disable its return trip; Simulation and Optimizer then cannot use reverse fallback for that route. Optimizer output is session-only and is retained when navigating away; only Delete output clears it.
+- Working Tree: Guided optimizer changes are ready to commit.
+- Latest Commit: `d340694` (`Improve route and optimizer usability`).
+- Notes: Optimizer precomputes sparse market indexes, the effective route graph, deterministic shortest paths, commercial villages, and profitable Supply-to-Demand opportunities once per run. Candidate generation uses those indexes before SimulationEngine verification.
   The Optimizer page restores its running state from an active job after reload and keeps Brake visible after start.
   Returned plans compact consecutive same-village Buy/Sell actions for the same product without changing the simulated final state.
   Target mode ignores period/steps/expanded-state stopping conditions, retains Beam Width as the active memory bound, and relies on target completion, frontier exhaustion, or Brake to finish.
@@ -28,47 +28,47 @@
 
 - Command: `npm run build`
 - Status: `PASS`
-- Date: 2026-09-13
+- Date: 2026-09-14
 - Error Summary: None
-- Details: Production build completed successfully with the canvas controls, filters, and optimizer output store.
+- Details: Production build completed successfully with the guided optimizer modules.
 
 ### Test
 
 - Command: `npm run test`
 - Status: `PASS`
-- Date: 2026-09-13
-- Tests: 21 test files passed; 98 tests passed.
+- Date: 2026-09-14
+- Tests: 22 test files passed; 105 tests passed.
 - Error Summary: None
-- Details: Full Vitest suite completed successfully; 98 tests passed.
+- Details: Full Vitest suite completed successfully, including worker, stockpile, continuous-chain, quantity, pruning, replay, and sparse benchmark coverage.
 
 ### Lint
 
 - Command: `npm run lint`
 - Status: `PASS`
-- Date: 2026-09-13
+- Date: 2026-09-14
 - Error Summary: None
 - Details: ESLint completed successfully.
 
 ### E2E
 
 - Command: `npm run e2e`
-- Status: `FAIL`
-- Date: 2026-09-13
-- Details: The Playwright browser flows could not launch because Windows returned `spawn EPERM` for the installed Chromium headless shell. One API-only flow passed; this is an environment permission blocker, not an asserted application failure.
+- Status: `PASS`
+- Date: 2026-09-14
+- Details: All 4 Playwright flows passed using isolated temporary SQLite and backup paths.
 
 ### Optimizer Worker Smoke
 
 - Command: `npm run test -- --run tests/optimizer/optimizer-worker-api.test.ts` (included in the focused 21-test run and the full suite)
 - Status: `PASS`
-- Date: 2026-09-12
-- Details: Worker/API integration tests completed successfully with the revised run-specific reset contract.
+- Date: 2026-09-14
+- Details: Worker/API integration passed with guided candidate generation, cooperative Brake, and the disk-backed state store.
 
 ## Changes In Last Task
 
-- Files changed: World canvas/route edge, Product/Village/Route management pages, Optimizer page/result store, styles, and this status note.
-- What changed: Added canvas route deletion with confirmation, Product category/search filters, Village/Route searches, and a session-only optimizer-result store with Delete output.
-- Why: Make large worlds easier to manage and prevent completed optimizer output from disappearing after navigation.
-- Behavior affected: Deleting a canvas route calls the existing route API after confirmation. A completed optimizer result remains while the app session is open, including across page navigation; a new run does not clear it, and Delete output is the explicit clear action.
+- Files changed: Optimizer intelligence, candidate generation, scoring/search integration, statistics, focused optimizer tests, sparse benchmark, small E2E compatibility fixes, and this status note.
+- What changed: Added run-scoped market/route indexes, deterministic shortest paths, profitable opportunity indexing, strategic travel/BUY pruning, economic quantities, bounded SELL dominance, reachable reserve/demand/time-aware inventory potential, and shallow trade-chain scoring.
+- Why: Reduce blind SimulationEngine transitions while retaining profitable stockpiles, multi-hop paths, multi-product plans, and continuous trade chains.
+- Behavior affected: Frontier ordering now uses a composite realized-plus-reachable-potential heuristic; final result comparison still uses realized accumulated profit first. Every emitted BUY/SELL/TRAVEL transition remains verified by SimulationEngine.
 
 ## Known Issues
 
@@ -79,24 +79,18 @@
    - Recommended action: Continue to verify after each scoped change.
 
 2. Medium
-   - Location: Playwright browser execution on this Windows host
-   - Problem: Chromium headless-shell launch currently fails with `spawn EPERM`.
-   - Impact: The browser portion of `npm run e2e` cannot complete on this host.
-   - Recommended action: Restore permission to launch the installed Playwright Chromium executable, then rerun E2E.
-
-3. Medium
    - Location: Optimizer Target mode
    - Problem: An unreachable profit target can search indefinitely by design.
    - Impact: The user must use Brake when no target result is found.
    - Recommended action: Set realistic targets and monitor progress/Brake.
 
-4. Low
+3. Low
    - Location: World canvas route layout
    - Problem: Edge routing intentionally uses local smart handles rather than global crossing or label-collision optimization.
    - Impact: Very dense worlds can still have intersections between unrelated route pairs.
    - Recommended action: Reposition villages manually; consider a bounded fan-out enhancement only if dense-world usage proves it necessary.
 
-5. Low
+4. Low
    - Location: Optimizer post-plan liquidation
    - Problem: Inventory cannot always be fully sold when reachable demand, reserve money, or remaining normal-mode time is insufficient.
    - Impact: The final plan can retain unsellable inventory.
@@ -132,11 +126,13 @@
 - Product Management provides a controlled Military/Domestic/Industrial/Neutral category dropdown while preserving existing legacy category strings during edit.
 - Optimizer runtime timeout is configurable per run from 1–600 seconds through the UI/API while retaining a 30-second default.
 - Optimizer candidate retention is bounded to eight times beam width per depth, and cache entries are retained only for the selected frontier to prevent unbounded Worker heap growth.
+- Guided beam search precomputes sparse market indexes, route-aware shortest paths, commercial transit nodes, and profitable trade opportunities once per run.
+- Strategic candidate generation prunes unreachable/unprofitable BUY branches and unrelated travel while retaining conservative travel fallback, multi-hop next hops, and SimulationEngine authority.
 
 ## Remaining Work
 
-1. Restore Playwright Chromium launch permission and rerun the browser E2E suite.
-2. Continue the next planned optimizer/release task after E2E is green.
+1. Validate and tune guided-search defaults against the user's current production WorldData without changing business rules.
+2. Continue release packaging and real-world optimizer stress validation.
 
 ## Important Notes For ChatGPT
 
@@ -155,7 +151,10 @@
 - Page-level lazy loading reduced the largest generated JavaScript chunk to approximately 233 kB in the latest build.
 - Optimizer transitions instantiate the existing `SimulationEngine` from each candidate state; cash, capacity, market, reserve, reset, travel, reverse-route, and profit rules are not duplicated.
 - Optimizer state signatures include time/location, player money, sorted inventory and cost basis, every village timer/reserve, all runtime market quantities, and accumulated realized profit.
-- Frontier ranking uses unrealized liquidation potential only as a tie-break heuristic; result profit remains `SimulationState.accumulatedProfit`, and exact global optimality is not claimed.
+- Frontier ranking uses realized profit plus travel-discounted reachable inventory and one-crate continuation potential so promising stockpiles can survive narrow beams. Final result ranking remains realized-profit-first, and exact global optimality is not claimed.
+- Reachable inventory potential greedily caps value by runtime/reset-aware Demand quantity and village reserve, allocates across multiple reachable Demand villages, and never becomes realized profit.
+- BUY quantities are limited to maximum feasible, Demand/reserve matched, combined-Demand, crate-boundary, and bounded capacity-reservation candidates; generic one-third/half/two-thirds branching was removed.
+- Travel candidates use deterministic next hops toward held-inventory Demand and profitable Supply opportunities; a conservative adjacent-route fallback is used only when strategic generation yields no action.
 - `POST /api/optimizer/run` accepts bounded search options plus the shared run-specific village reset map; the server loads authoritative WorldData and does not persist the reset overrides.
 - The Worker never imports database code; the server loads WorldData before spawning it, and each run owns its search state/cache.
 - Worker bootstrap prefers a compiled `.js` entry and falls back to the repository's current TypeScript/ESM runtime; a post-build standalone worker smoke returned a profitable result.
@@ -188,12 +187,11 @@
 - Product create requests omit `id`; SQLite-backed IDs use monotonic `P000001` formatting while legacy IDs such as `MILK` remain unchanged and updateable.
 - Current Reset card edits remain client-local until Start Simulation or Run Optimizer; E2E verified that editing does not issue Village persistence requests.
 - Responsive browser inspection passed at 1440, 1024, 768, and 390 px for both setup pages, including local error presentation and Optimizer results; no page-level horizontal overflow was observed.
-- Latest verification: build PASS, 21 Vitest files/98 tests PASS, lint PASS. E2E browser execution remains blocked by a local Chromium `spawn EPERM` permission failure.
+- Representative 22-village/31-route/46-product sparse benchmark: 160 expanded, 439 generated, 44 deduplicated, frontier 30, 139 travel actions pruned, 600 realized profit, 82.08 ms, peak heap 22,493,752 bytes, peak RSS 81,735,680 bytes. Values are host/run-specific; replay passed.
+- Latest verification: build PASS, 22 Vitest files/105 tests PASS, lint PASS, 4 Playwright E2E flows PASS.
 
 ## Verification History
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-13 | Uncommitted | PASS | PASS | PASS | PASS | Post-plan liquidation: 21 Vitest files/96 tests and 4 isolated Playwright flows passed. |
-| 2026-09-13 | `1667105` | PASS | PASS | PASS | FAIL | Added optional one-way routes; Chromium browser launch was blocked by `spawn EPERM`. |
-| 2026-09-13 | Uncommitted | PASS | PASS | PASS | NOT_RUN | Added canvas route deletion, Product category/search filters, Village/Route search, and session-only optimizer output retention. |
+| 2026-09-14 | Pending | PASS | PASS | PASS | PASS | Guided optimizer: 22 files/105 tests, 4 E2E flows, worker smoke, stockpile/chain fixtures, and 22/31/46 sparse benchmark passed. |

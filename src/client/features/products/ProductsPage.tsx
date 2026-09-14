@@ -232,7 +232,7 @@ export function ProductsPage() {
       ) : (
         <section className="products-panel">
           <div className="products-table-heading"><h2>Products</h2><span>{visibleProducts.length} of {products.length} products</span></div>
-          <div className="management-filters"><label>Search products<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name or ID" /></label><label>Category<select value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All categories</option>{categories.map((value) => <option key={value} value={value}>{value}</option>)}</select></label></div>
+          <div className="management-filters"><label>Search products<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name or ID" /></label><label>Product group<select value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All categories</option>{categories.map((value) => <option key={value} value={value}>{value}</option>)}</select></label></div>
           <div className="products-table-wrapper"><table className="products-table">
             <thead>
               <tr>

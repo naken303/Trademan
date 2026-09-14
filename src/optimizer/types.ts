@@ -49,6 +49,10 @@ export interface OptimizerSearchStatistics {
   bestAccumulatedProfit: number;
   peakHeapUsedBytes: number;
   peakRssBytes: number;
+  precomputationMs: number;
+  prunedBuyActions: number;
+  prunedTravelActions: number;
+  strategicFallbackCount: number;
   terminationReason: "completed" | "brake" | "targetProfit" | "maxSteps" | "maxExpandedStates" | "frontierExhausted";
   elapsedMs: number;
 }

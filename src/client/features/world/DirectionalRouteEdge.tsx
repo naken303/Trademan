@@ -72,7 +72,7 @@ export function DirectionalRouteEdge({
           onDoubleClick={editRoute}
         >
           {data?.durationLabel}
-          <button type="button" className="route-edge-delete" aria-label="Delete route" title="Delete route" onClick={deleteRoute}>×</button>
+          <button type="button" className="route-edge-delete" aria-label="Delete route" title="Delete route" onClick={deleteRoute} />
         </div>
       </EdgeLabelRenderer>
     </g>

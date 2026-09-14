@@ -1,10 +1,10 @@
-import { canAddInventory } from "../domain/inventory";
-import { getTravelTime } from "../domain/route";
-import type { Market, Product, SimulationState, WorldData } from "../shared/types";
+import type { SimulationState, WorldData } from "../shared/types";
 import { createInitialSimulationState, SimulationEngine } from "../simulation";
+import { generateStrategicActions, type CandidateGenerationStats } from "./candidate-generator";
 import { compareForFrontier, compareForResult, createDominanceScore, type ScoredSearchState } from "./scoring";
 import { createOptimizerStateSignature } from "./state-signature";
 import type { OptimizerStateStore } from "./state-store";
+import { createOptimizerIntelligence, estimateMarketCapacity, getShortestPath, getShortestTravelHours, type OptimizerIntelligence } from "./trade-intelligence";
 import type {
   OptimizerAction, OptimizerPlanStep, OptimizerResult, OptimizerSearchOptions,
   ResolvedOptimizerSearchOptions, OptimizerSearchStatistics,
@@ -31,68 +31,6 @@ function resolveOptions(world: WorldData, options: OptimizerSearchOptions): Reso
   return { periodDays, beamWidth, maxSteps, maxExpandedStates, targetProfit };
 }
 
-interface OptimizerContext { productsById: Map<string, Product>; marketsByVillage: Map<string, Market[]>; destinationsByVillage: Map<string, string[]>; }
-function createContext(world: WorldData): OptimizerContext {
-  const marketsByVillage = new Map<string, Market[]>();
-  for (const market of world.markets) { const markets = marketsByVillage.get(market.villageId) ?? []; markets.push(market); marketsByVillage.set(market.villageId, markets); }
-  for (const markets of marketsByVillage.values()) markets.sort((left, right) => left.id.localeCompare(right.id));
-  const destinationsByVillage = new Map(world.villages.map((village) => [village.id, world.villages.filter((destination) => destination.id !== village.id && getTravelTime(world.routes, village.id, destination.id)).map((destination) => destination.id).sort()]));
-  return { productsById: new Map(world.products.map((product) => [product.id, product])), marketsByVillage, destinationsByVillage };
-}
-
-function addAround(values: Set<number>, value: number, maximum: number) {
-  for (const candidate of [value - 1, value, value + 1]) {
-    if (Number.isInteger(candidate) && candidate > 0 && candidate <= maximum) values.add(candidate);
-  }
-}
-
-function usefulQuantities(maximum: number, product: Product, currentQuantity: number): number[] {
-  const values = new Set<number>();
-  for (const boundary of [1, maximum, Math.floor(maximum / 2), Math.floor(maximum / 3), Math.floor(maximum * 2 / 3)]) {
-    addAround(values, boundary, maximum);
-  }
-  const crate = product.unitsPerCrate;
-  const nextCrate = currentQuantity % crate === 0 ? crate : crate - (currentQuantity % crate);
-  for (const boundary of [nextCrate, crate, Math.floor(maximum / crate) * crate]) {
-    addAround(values, boundary, maximum);
-  }
-  return [...values].sort((left, right) => left - right);
-}
-
-function maxBuyQuantity(world: WorldData, state: SimulationState, market: Market, product: Product, available: number): number {
-  const cashLimit = market.unitPrice === 0 ? available : Math.floor(state.player.money / market.unitPrice);
-  let low = 0;
-  let high = Math.min(available, cashLimit);
-  while (low < high) {
-    const middle = Math.ceil((low + high) / 2);
-    if (canAddInventory(state.player.inventory, product, middle, world.products, world.player.inventoryCapacityCrates)) low = middle;
-    else high = middle - 1;
-  }
-  return low;
-}
-
-function generateActions(world: WorldData, context: OptimizerContext, state: SimulationState): OptimizerAction[] {
-  const runtimeVillage = state.villages[state.player.location];
-  if (!runtimeVillage) return [];
-  const actions: OptimizerAction[] = [];
-
-  for (const market of context.marketsByVillage.get(state.player.location) ?? []) {
-    const product = context.productsById.get(market.productId);
-    const available = runtimeVillage.markets[market.id]?.quantity ?? 0;
-    if (!product || available <= 0) continue;
-    const inventoryQuantity = state.player.inventory.find((item) => item.productId === product.id)?.quantity ?? 0;
-    const maximum = market.side === "supply"
-      ? maxBuyQuantity(world, state, market, product, available)
-      : Math.min(available, inventoryQuantity, market.unitPrice === 0 ? available : Math.floor(runtimeVillage.money / market.unitPrice));
-    for (const quantity of usefulQuantities(maximum, product, inventoryQuantity)) {
-      actions.push({ type: market.side === "supply" ? "buy" : "sell", productId: product.id, quantity });
-    }
-  }
-
-  for (const destinationId of context.destinationsByVillage.get(state.player.location) ?? []) actions.push({ type: "travel", destinationId });
-  return actions;
-}
-
 function transition(world: WorldData, state: SimulationState, action: OptimizerAction): SimulationState {
   const engine = new SimulationEngine(state, world.products, world.routes, world.markets, world.player.inventoryCapacityCrates);
   if (action.type === "buy") return engine.buy(action.productId, action.quantity);
@@ -108,8 +46,8 @@ function actionKey(action: OptimizerAction): string {
   return action.type === "travel" ? `travel:${action.destinationId}` : `${action.type}:${action.productId}:${action.quantity}`;
 }
 
-function sortCandidates(world: WorldData, candidates: SearchNode[]): SearchNode[] {
-  return candidates.sort((left, right) => compareForFrontier(world, right, left)
+function sortCandidates(context: OptimizerIntelligence, candidates: SearchNode[]): SearchNode[] {
+  return candidates.sort((left, right) => compareForFrontier(context, right, left)
     || actionKey(left.plan.at(-1)!.action).localeCompare(actionKey(right.plan.at(-1)!.action)));
 }
 
@@ -117,27 +55,18 @@ function addPlanStep(plan: OptimizerPlanStep[], action: OptimizerAction, state: 
   plan.push({ action, time: state.time, villageId: state.player.location, playerMoney: state.player.money, accumulatedProfit: state.accumulatedProfit });
 }
 
-function liquidationPath(world: WorldData, context: OptimizerContext, state: SimulationState, deadline: number): string[] | undefined {
+function liquidationPath(world: WorldData, context: OptimizerIntelligence, state: SimulationState, deadline: number): string[] | undefined {
   const inventoryProducts = new Set(state.player.inventory.filter((item) => item.quantity > 0).map((item) => item.productId));
-  const destinations = world.markets.filter((market) => market.side === "demand" && inventoryProducts.has(market.productId)).map((market) => market.villageId);
-  const queue: Array<{ villageId: string; hours: number; path: string[] }> = [{ villageId: state.player.location, hours: 0, path: [] }];
-  const visited = new Set<string>();
-  while (queue.length > 0) {
-    queue.sort((left, right) => left.hours - right.hours || left.villageId.localeCompare(right.villageId));
-    const current = queue.shift()!;
-    if (visited.has(current.villageId)) continue;
-    visited.add(current.villageId);
-    if (current.path.length > 0 && destinations.includes(current.villageId)) return current.path;
-    for (const destinationId of context.destinationsByVillage.get(current.villageId) ?? []) {
-      const duration = getTravelTime(world.routes, current.villageId, destinationId)!;
-      const hours = current.hours + duration.days * 24 + duration.hours;
-      if (state.time.day * 24 + state.time.hour + hours <= deadline) queue.push({ villageId: destinationId, hours, path: [...current.path, destinationId] });
-    }
-  }
-  return undefined;
+  const candidates = world.markets.filter((market) => market.side === "demand" && inventoryProducts.has(market.productId)).flatMap((market) => {
+    const hours = getShortestTravelHours(context, state.player.location, market.villageId);
+    const path = getShortestPath(context, state.player.location, market.villageId);
+    if (hours === undefined || !path || path.length < 2 || absoluteHour(state) + hours > deadline || estimateMarketCapacity(state, market, hours) <= 0) return [];
+    return [{ market, hours, path: [...path.slice(1)] }];
+  }).sort((a, b) => a.hours - b.hours || b.market.unitPrice - a.market.unitPrice || a.market.id.localeCompare(b.market.id));
+  return candidates[0]?.path;
 }
 
-function liquidateInventory(world: WorldData, context: OptimizerContext, initialState: SimulationState, initialPlan: OptimizerPlanStep[], deadline: number): { state: SimulationState; plan: OptimizerPlanStep[] } {
+function liquidateInventory(world: WorldData, context: OptimizerIntelligence, initialState: SimulationState, initialPlan: OptimizerPlanStep[], deadline: number): { state: SimulationState; plan: OptimizerPlanStep[] } {
   let state = initialState;
   const plan = [...initialPlan];
   for (let attempts = 0; attempts < world.markets.length * 2 + world.villages.length * 2 && state.player.inventory.some((item) => item.quantity > 0); attempts += 1) {
@@ -194,20 +123,26 @@ export function runOptimizer(world: WorldData, options: OptimizerSearchOptions =
   const startHour = absoluteHour(initialState);
   const targetMode = resolved.targetProfit !== undefined;
   const deadline = targetMode ? Infinity : startHour + resolved.periodDays * 24;
-  const context = createContext(world);
+  const precomputeStartedAt = performance.now();
+  const context = createOptimizerIntelligence(world);
+  const precomputationMs = performance.now() - precomputeStartedAt;
   const initial: SearchNode = { state: initialState, plan: [], tradeActions: 0, firstProfitStep: null };
   let frontier = [initial];
   let best = initial;
   const cache = new Map([[createOptimizerStateSignature(initialState), initial]]);
   const maxCandidatesPerDepth = resolved.beamWidth * 8;
-  const statistics: OptimizerSearchStatistics = { expandedStates: 0, generatedStates: 0, deduplicatedStates: 0, maxFrontierSize: 1, currentDepth: 0, currentFrontierSize: 1, bestAccumulatedProfit: 0, peakHeapUsedBytes: 0, peakRssBytes: 0, terminationReason: "completed", elapsedMs: 0 };
+  const pruningStats: CandidateGenerationStats = { prunedBuyActions: 0, prunedTravelActions: 0, strategicFallbackCount: 0 };
+  const statistics: OptimizerSearchStatistics = { expandedStates: 0, generatedStates: 0, deduplicatedStates: 0, maxFrontierSize: 1, currentDepth: 0, currentFrontierSize: 1, bestAccumulatedProfit: 0, peakHeapUsedBytes: 0, peakRssBytes: 0, precomputationMs, ...pruningStats, terminationReason: "completed", elapsedMs: 0 };
   let terminationReason: OptimizerSearchStatistics["terminationReason"] = "completed";
   const report = () => {
-    if (control.onProgress) { const memory = process.memoryUsage(); statistics.peakHeapUsedBytes = Math.max(statistics.peakHeapUsedBytes, memory.heapUsed); statistics.peakRssBytes = Math.max(statistics.peakRssBytes, memory.rss); }
+    const memory = process.memoryUsage(); statistics.peakHeapUsedBytes = Math.max(statistics.peakHeapUsedBytes, memory.heapUsed); statistics.peakRssBytes = Math.max(statistics.peakRssBytes, memory.rss);
+    statistics.prunedBuyActions = pruningStats.prunedBuyActions;
+    statistics.prunedTravelActions = pruningStats.prunedTravelActions;
+    statistics.strategicFallbackCount = pruningStats.strategicFallbackCount;
     statistics.bestAccumulatedProfit = best.state.accumulatedProfit;
     control.onProgress?.({ ...statistics, terminationReason, elapsedMs: performance.now() - startedAt });
   };
-  control.stateStore?.accepts(createOptimizerStateSignature(initialState), createDominanceScore(world, initial));
+  control.stateStore?.accepts(createOptimizerStateSignature(initialState), createDominanceScore(context, initial));
 
   for (let depth = 0; (targetMode || depth < resolved.maxSteps) && frontier.length > 0; depth += 1) {
     statistics.currentDepth = depth;
@@ -217,7 +152,7 @@ export function runOptimizer(world: WorldData, options: OptimizerSearchOptions =
       if (control.shouldBrake?.()) { terminationReason = "brake"; break; }
       if (!targetMode && statistics.expandedStates >= resolved.maxExpandedStates) break;
       statistics.expandedStates += 1;
-      for (const action of generateActions(world, context, node.state).sort((left, right) => actionKey(left).localeCompare(actionKey(right)))) {
+      for (const action of generateStrategicActions(context, node.state, deadline, targetMode, pruningStats).sort((left, right) => actionKey(left).localeCompare(actionKey(right)))) {
         if (control.shouldBrake?.()) { terminationReason = "brake"; break; }
         let state: SimulationState;
         try { state = transition(world, node.state, action); } catch { continue; }
@@ -232,7 +167,7 @@ export function runOptimizer(world: WorldData, options: OptimizerSearchOptions =
         };
         const signature = createOptimizerStateSignature(state);
         const existing = nextBySignature.get(signature) ?? cache.get(signature);
-        if (existing && compareForFrontier(world, candidate, existing) <= 0) {
+        if (existing && compareForFrontier(context, candidate, existing) <= 0) {
           statistics.deduplicatedStates += 1;
           continue;
         }
@@ -240,7 +175,7 @@ export function runOptimizer(world: WorldData, options: OptimizerSearchOptions =
         if (compareForResult(world, candidate, best) > 0) best = candidate;
         if (targetMode && best.state.accumulatedProfit >= resolved.targetProfit!) { terminationReason = "targetProfit"; break; }
         if (nextBySignature.size >= maxCandidatesPerDepth * 2) {
-          const retained = sortCandidates(world, [...nextBySignature.values()]).slice(0, maxCandidatesPerDepth);
+          const retained = sortCandidates(context, [...nextBySignature.values()]).slice(0, maxCandidatesPerDepth);
           nextBySignature.clear();
           for (const retainedCandidate of retained) nextBySignature.set(createOptimizerStateSignature(retainedCandidate.state), retainedCandidate);
         }
@@ -249,11 +184,11 @@ export function runOptimizer(world: WorldData, options: OptimizerSearchOptions =
     }
     if (terminationReason === "brake" || terminationReason === "targetProfit") break;
     const survivors = [...nextBySignature.values()].filter((candidate) => {
-      const accepted = control.stateStore?.accepts(createOptimizerStateSignature(candidate.state), createDominanceScore(world, candidate)) ?? true;
+      const accepted = control.stateStore?.accepts(createOptimizerStateSignature(candidate.state), createDominanceScore(context, candidate)) ?? true;
       if (!accepted) statistics.deduplicatedStates += 1;
       return accepted;
     });
-    frontier = sortCandidates(world, survivors).slice(0, resolved.beamWidth);
+    frontier = sortCandidates(context, survivors).slice(0, resolved.beamWidth);
     cache.clear();
     for (const node of frontier) cache.set(createOptimizerStateSignature(node.state), node);
     statistics.maxFrontierSize = Math.max(statistics.maxFrontierSize, frontier.length);
