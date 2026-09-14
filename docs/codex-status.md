@@ -3,7 +3,7 @@
 ## Last Updated
 
 - Date: 2026-09-14
-- Commit: Pending (`Guide optimizer with trade intelligence and smart pruning`)
+- Commit: `feb79b2` (`Guide optimizer with trade intelligence and smart pruning`)
 - Branch: main
 
 ## Current Phase
@@ -14,8 +14,8 @@
 
 ## Repository Status
 
-- Working Tree: Guided optimizer changes are ready to commit.
-- Latest Commit: `d340694` (`Improve route and optimizer usability`).
+- Working Tree: Clean after committing and pushing the guided optimizer change.
+- Latest Commit: `feb79b2` (`Guide optimizer with trade intelligence and smart pruning`).
 - Notes: Optimizer precomputes sparse market indexes, the effective route graph, deterministic shortest paths, commercial villages, and profitable Supply-to-Demand opportunities once per run. Candidate generation uses those indexes before SimulationEngine verification.
   The Optimizer page restores its running state from an active job after reload and keeps Brake visible after start.
   Returned plans compact consecutive same-village Buy/Sell actions for the same product without changing the simulated final state.
@@ -194,4 +194,4 @@
 
 | Date | Commit | Build | Test | Lint | E2E | Notes |
 | ---- | ------ | ----- | ---- | ---- | ---- | ----- |
-| 2026-09-14 | Pending | PASS | PASS | PASS | PASS | Guided optimizer: 22 files/105 tests, 4 E2E flows, worker smoke, stockpile/chain fixtures, and 22/31/46 sparse benchmark passed. |
+| 2026-09-14 | `feb79b2` | PASS | PASS | PASS | PASS | Guided optimizer: 22 files/105 tests, 4 E2E flows, worker smoke, stockpile/chain fixtures, and 22/31/46 sparse benchmark passed. |
